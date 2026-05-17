@@ -1,0 +1,61 @@
+# ---------------------------------------------------------------------------
+# Databricks Apps sync excludes — only ship what the running app needs.
+#
+# `databricks apps deploy` (and `databricks sync` underneath it) uploads
+# everything from the directory containing app.yaml. It does NOT honor
+# .gitignore, so this file is the source of truth for what gets shipped.
+#
+# Keep at runtime:
+#   - app.yaml, requirements.txt
+#   - app/backend/**/*.py
+#   - app/frontend/dist/**   (built static UI served by FastAPI)
+# ---------------------------------------------------------------------------
+
+# Source control / IDE
+.git/
+.gitignore
+.cursor/
+.ai-dev-kit/
+.vscode/
+.idea/
+.DS_Store
+
+# Local Databricks CLI sync state
+.databricks/
+
+# Dev-only top-level dirs (data lives in UC volumes; scripts/docs/tests
+# are not used by the running app)
+docs/
+tests/
+scripts/
+data/
+
+# Python build / runtime artefacts
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+
+# Frontend source — only app/frontend/dist/ is served by the backend.
+# Build locally with `npm run build` before deploying.
+app/frontend/node_modules/
+app/frontend/src/
+app/frontend/public/
+app/frontend/index.html
+app/frontend/package.json
+app/frontend/package-lock.json
+app/frontend/tsconfig.json
+app/frontend/vite.config.ts
+app/frontend/tailwind.config.js
+app/frontend/postcss.config.js
+app/frontend/.env.local
+
+# Root-level docs / examples
+README.md
+.env.example
+*.env

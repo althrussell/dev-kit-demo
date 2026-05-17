@@ -179,33 +179,63 @@ def map_bundle(
     asset_type: Optional[str] = None,
     asset_limit: int = 4000,
 ):
-    """Bundle endpoint to reduce frontend round-trips."""
-    ds = data_store  # type: ignore[assignment]
-    assets = ds.list_assets_for_map(  # type: ignore[union-attr]
-        region_id=region, risk_band=risk_band, asset_type=asset_type, scenario=scenario, limit=asset_limit,
+    """Scenario-aware bundle endpoint.
+
+    Returns a fully tailored payload per scenario (different hazards filtered,
+    different asset subset, and optional `vegetation_lines` / `outage_lines` /
+    `risk_extrusions` extras) so the map visibly transforms when the user
+    switches scenarios in the sidebar.
+
+    Also enriches the payload with real PostGIS spatial joins when the
+    Lakebase `gridlens_geo` schema is available — adding `hazard_impact_assets`
+    (assets within 20km of severe hazards, computed via ST_DWithin on
+    geography columns) and `hazard_polygons` (true PostGIS-buffered polygons
+    rather than circle approximations).
+    """
+    bundle = data_store.get_map_bundle(  # type: ignore[union-attr]
+        scenario=scenario,
+        region_id=region,
+        risk_band=risk_band,
+        asset_type=asset_type,
+        asset_limit=asset_limit,
     )
-    hazards = ds.hazards(region_id=region)  # type: ignore[union-attr]
-    critical_customers = ds.critical_customers_for_region(region_id=region)  # type: ignore[union-attr]
-    depots = ds.depots_for_region(region_id=region)  # type: ignore[union-attr]
-    mobgen = ds.mobile_gen_for_region(region_id=region)  # type: ignore[union-attr]
-    high = sum(1 for a in assets if a["risk_band"] == "high")
-    critical = sum(1 for a in assets if a["risk_band"] == "critical")
-    customers_exposed = sum(
-        int(ds.feeders.get(a["feeder_id"], {}).get("customer_count") or 0)  # type: ignore[union-attr]
-        for a in assets if a["risk_band"] in ("high", "critical")
-    )
-    feeders_count = len({a["feeder_id"] for a in assets})
-    return {
-        "assets": assets,
-        "hazards": hazards,
-        "critical_customers": critical_customers,
-        "depots": depots,
-        "mobile_gen_sites": mobgen,
-        "feeders_count": feeders_count,
-        "high_risk_asset_count": high,
-        "critical_asset_count": critical,
-        "customers_exposed": customers_exposed,
-    }
+
+    # Opportunistically enrich with Lakebase PostGIS spatial queries.
+    bundle["hazard_impact_assets"] = []
+    bundle["hazard_polygons"] = []
+    if lakebase_service and scenario in ("storm_readiness", "normal", "vegetation_program"):
+        try:
+            if lakebase_service.has_postgis():
+                hazard_filter = None
+                if scenario == "storm_readiness":
+                    hazard_filter = ["cyclone", "storm", "flood"]
+                elif scenario == "vegetation_program":
+                    hazard_filter = ["bushfire", "heat"]
+                # Distance-based asset risk: real ST_DWithin against geography.
+                bundle["hazard_impact_assets"] = lakebase_service.assets_within_hazard(
+                    hazard_types=hazard_filter,
+                    min_severity=55.0,
+                    distance_m=20_000.0,
+                    region_id=region,
+                    limit=1200,
+                )
+                # PostGIS-buffered polygon footprints for hazard zones.
+                bundle["hazard_polygons"] = lakebase_service.hazard_polygons(
+                    hazard_types=hazard_filter,
+                    region_id=region,
+                    limit=120,
+                )
+                # Surface PostGIS usage in the scenario summary counts.
+                if "scenario_summary" in bundle:
+                    bundle["scenario_summary"]["counts"]["postgis_impact_assets"] = len(
+                        bundle["hazard_impact_assets"]
+                    )
+                    bundle["scenario_summary"]["counts"]["postgis_hazard_polygons"] = len(
+                        bundle["hazard_polygons"]
+                    )
+        except Exception as e:
+            print(f"[map/bundle] PostGIS enrichment skipped: {e}")
+    return bundle
 
 
 # ---------------------------------------------------------------------------
@@ -414,13 +444,18 @@ def genie_ask(req: models.GenieAskRequest):
 
 @app.get("/api/genie/suggested-questions")
 def genie_suggested():
+    # Verified live against the gridlens-network-intel Genie space. Each
+    # question is known to generate valid SQL over the energyq_gold /
+    # energyq_silver tables and return non-empty rows.
     return [
-        "Which regions have the highest storm-season asset risk?",
-        "Which feeders have repeated vegetation-related outages?",
-        "What percentage of high-risk assets have planned remediation?",
-        "Where should we prioritise work to reduce customer impact?",
-        "Which regions have the highest vegetation backlog?",
-        "Which regions have the highest critical customer impact exposure?",
+        "Rank regions by total high and critical risk assets.",
+        "Show me feeders with repeated vegetation-related outages in the last 12 months.",
+        "Rank regions by vegetation backlog (spans overdue by more than 30 days).",
+        "Which 10 feeders should we prioritise work on?",
+        "How many critical customers are exposed to high-risk assets, by region?",
+        "How many work orders are approved, scheduled or in progress by region?",
+        "Which assets are in cyclone, storm or flood hazard zones?",
+        "Top 10 assets by risk score for storm-season prioritisation.",
     ]
 
 

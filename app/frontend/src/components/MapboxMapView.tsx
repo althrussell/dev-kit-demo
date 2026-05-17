@@ -8,6 +8,11 @@ import type {
   CriticalCustomer,
   Depot,
   MobileGenSite,
+  VegetationLine,
+  OutageLine,
+  RiskExtrusion,
+  HazardImpactAsset,
+  HazardPolygon,
 } from '../types';
 import { useAppState } from '../lib/AppState';
 import { useNavigate } from 'react-router-dom';
@@ -122,8 +127,66 @@ export function MapboxMapView({
       map.addSource('assets', { type: 'geojson', data: emptyFC() });
       map.addSource('selected-asset', { type: 'geojson', data: emptyFC() });
       map.addSource('asset-heat', { type: 'geojson', data: emptyFC() });
+      map.addSource('vegetation-lines', { type: 'geojson', data: emptyFC() });
+      map.addSource('outage-lines', { type: 'geojson', data: emptyFC() });
+      map.addSource('risk-extrusions', { type: 'geojson', data: emptyFC() });
+      map.addSource('hazard-polygons', { type: 'geojson', data: emptyFC() });
+      map.addSource('hazard-impact-assets', { type: 'geojson', data: emptyFC() });
 
       const beforeId = firstSymbolLayer(map);
+
+      // Real PostGIS-buffered hazard polygons (geography Polygon) painted
+      // underneath the circle approximations. Drops gracefully to empty
+      // when Lakebase isn't reachable.
+      map.addLayer(
+        {
+          id: 'hazard-polygons-fill',
+          type: 'fill',
+          source: 'hazard-polygons',
+          paint: {
+            'fill-color': [
+              'match', ['get', 'hazard_type'],
+              'cyclone', '#7C3AED',
+              'flood', '#1E88E5',
+              'bushfire', '#E5484D',
+              'heat', '#FFB020',
+              'storm', '#18D4FF',
+              'coastal_corrosion', '#D8B06A',
+              '#7C3AED',
+            ],
+            'fill-opacity': [
+              'interpolate', ['linear'], ['get', 'severity_score'],
+              30, 0.05,
+              70, 0.18,
+              99, 0.28,
+            ],
+          },
+        },
+        beforeId,
+      );
+      map.addLayer(
+        {
+          id: 'hazard-polygons-outline',
+          type: 'line',
+          source: 'hazard-polygons',
+          layout: { 'line-join': 'round' },
+          paint: {
+            'line-color': [
+              'match', ['get', 'hazard_type'],
+              'cyclone', '#A26FF7',
+              'flood', '#5BA3F0',
+              'bushfire', '#FF6B6F',
+              'heat', '#FFD27A',
+              'storm', '#74E8FF',
+              'coastal_corrosion', '#E8C68B',
+              '#A26FF7',
+            ],
+            'line-width': 0.6,
+            'line-opacity': 0.45,
+          },
+        },
+        beforeId,
+      );
 
       map.addLayer(
         {
@@ -267,6 +330,132 @@ export function MapboxMapView({
             'circle-opacity': 0.85,
             'circle-stroke-color': '#0E263A',
             'circle-stroke-width': 1.2,
+          },
+        },
+        beforeId,
+      );
+
+      // Outage feeder lines — substation → asset centroid, width by outage count.
+      map.addLayer(
+        {
+          id: 'outage-lines-glow',
+          type: 'line',
+          source: 'outage-lines',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': '#E5484D',
+            'line-blur': 4,
+            'line-opacity': 0.35,
+            'line-width': [
+              'interpolate', ['linear'], ['get', 'outage_count'],
+              0, 1,
+              20, 8,
+              80, 18,
+            ],
+          },
+        },
+        beforeId,
+      );
+      map.addLayer(
+        {
+          id: 'outage-lines-layer',
+          type: 'line',
+          source: 'outage-lines',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': [
+              'interpolate', ['linear'], ['get', 'outage_count'],
+              0, '#FFB020',
+              30, '#E5484D',
+              80, '#FFE7E7',
+            ],
+            'line-width': [
+              'interpolate', ['linear'], ['get', 'outage_count'],
+              0, 0.6,
+              20, 2.2,
+              80, 5,
+            ],
+            'line-opacity': 0.95,
+          },
+        },
+        beforeId,
+      );
+
+      // Vegetation backlog spans rendered as gradient lines (green→amber→red).
+      map.addLayer(
+        {
+          id: 'vegetation-lines-layer',
+          type: 'line',
+          source: 'vegetation-lines',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': [
+              'interpolate', ['linear'], ['get', 'risk_score'],
+              0, '#2FB344',
+              40, '#18D4FF',
+              70, '#FFB020',
+              90, '#E5484D',
+            ],
+            'line-width': [
+              'interpolate', ['linear'], ['zoom'],
+              5, 1.2,
+              9, 2.4,
+              12, 4,
+            ],
+            'line-opacity': [
+              'interpolate', ['linear'], ['zoom'],
+              4, 0.55,
+              9, 0.9,
+            ],
+          },
+        },
+        beforeId,
+      );
+
+      // PostGIS impact-asset halo — assets within ST_DWithin range of a severe
+      // hazard, returned by Lakebase. Glowing magenta ring underlay so the
+      // user can see exactly *which* assets are in the impact corridor.
+      map.addLayer(
+        {
+          id: 'hazard-impact-halo',
+          type: 'circle',
+          source: 'hazard-impact-assets',
+          paint: {
+            'circle-radius': [
+              'interpolate', ['linear'], ['zoom'],
+              4, 4,
+              8, 10,
+              12, 18,
+            ],
+            'circle-color': '#E5478A',
+            'circle-opacity': 0.18,
+            'circle-stroke-color': '#FF9CC8',
+            'circle-stroke-width': 0.6,
+            'circle-stroke-opacity': 0.55,
+            'circle-blur': 0.5,
+          },
+        },
+        beforeId,
+      );
+
+      // 3D risk extrusions — top-N assets shown as illuminated bars at zoom 9+.
+      map.addLayer(
+        {
+          id: 'risk-extrusions-layer',
+          type: 'fill-extrusion',
+          source: 'risk-extrusions',
+          minzoom: 6,
+          paint: {
+            'fill-extrusion-color': [
+              'match', ['get', 'risk_band'],
+              'critical', '#E5484D',
+              'high', '#FFB020',
+              'medium', '#18D4FF',
+              '#7C3AED',
+            ],
+            'fill-extrusion-height': ['get', 'height_m'],
+            'fill-extrusion-base': 0,
+            'fill-extrusion-opacity': 0.78,
           },
         },
         beforeId,
@@ -542,25 +731,60 @@ export function MapboxMapView({
     (map.getSource('mobile-gen') as mapboxgl.GeoJSONSource | undefined)?.setData(
       mobileGenToFC(bundle.mobile_gen_sites),
     );
+    (map.getSource('vegetation-lines') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      vegetationLinesToFC(bundle.vegetation_lines ?? []),
+    );
+    (map.getSource('outage-lines') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      outageLinesToFC(bundle.outage_lines ?? []),
+    );
+    (map.getSource('risk-extrusions') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      riskExtrusionsToFC(bundle.risk_extrusions ?? []),
+    );
+    (map.getSource('hazard-polygons') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      hazardPolygonsToFC(bundle.hazard_polygons ?? []),
+    );
+    (map.getSource('hazard-impact-assets') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      hazardImpactToFC(bundle.hazard_impact_assets ?? []),
+    );
   }, [bundle, sourcesReady]);
 
   // ---------------- layer toggles ----------------
+  // The user's sidebar toggles + the scenario_summary.primary_layers preset
+  // combine: a layer is visible iff the user enabled it AND the scenario
+  // primary layer set lists it (or the layer is not scenario-gated).
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !sourcesReady) return;
+    const primary = bundle?.scenario_summary?.primary_layers ?? [];
+    const inScenario = (name: string) => primary.length === 0 || primary.includes(name);
+
     const set = (id: string, visible: boolean) => {
       if (!map.getLayer(id)) return;
       map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
     };
-    set('assets-layer', layers.assets);
-    set('asset-heat', layers.assets);
-    set('hazards-fill', layers.hazards);
-    set('hazards-cyclone-pulse', layers.hazards);
-    set('hazards-cyclone-core', layers.hazards);
-    set('critical-customers-layer', layers.critical_customers);
-    set('depots-layer', layers.depots);
-    set('mobile-gen-layer', layers.mobile_gen);
-  }, [layers, sourcesReady]);
+
+    set('assets-layer', layers.assets && inScenario('assets'));
+    set('asset-heat', layers.assets && inScenario('assets'));
+    set('hazards-fill', layers.hazards && inScenario('hazards'));
+    set('hazards-cyclone-pulse', layers.hazards && inScenario('hazards'));
+    set('hazards-cyclone-core', layers.hazards && inScenario('hazards'));
+    set('hazard-polygons-fill', layers.hazards && inScenario('hazards'));
+    set('hazard-polygons-outline', layers.hazards && inScenario('hazards'));
+    set('critical-customers-layer', layers.critical_customers && inScenario('critical_customers'));
+    set('depots-layer', layers.depots && inScenario('depots'));
+    set('mobile-gen-layer', layers.mobile_gen && inScenario('mobile_gen'));
+    // Scenario-only layers: visible only when in the scenario's primary set
+    // (vegetation_lines, outage_lines, risk_extrusions). They have no sidebar
+    // toggle yet — the scenario itself controls them.
+    set('vegetation-lines-layer', inScenario('vegetation_lines'));
+    set('outage-lines-layer', inScenario('outage_lines'));
+    set('outage-lines-glow', inScenario('outage_lines'));
+    set('risk-extrusions-layer', inScenario('risk_extrusions'));
+    // PostGIS impact-asset halo is visible whenever the scenario uses hazards
+    // (storm/normal/vegetation). It piggybacks on the hazards layer toggle so
+    // turning hazards off also hides the impact ring.
+    set('hazard-impact-halo', layers.hazards && inScenario('hazards'));
+  }, [layers, sourcesReady, bundle]);
 
   // ---------------- center / zoom ----------------
   useEffect(() => {
@@ -701,5 +925,118 @@ function mobileGenToFC(m: MobileGenSite[]): GeoJSON.FeatureCollection {
       geometry: { type: 'Point', coordinates: [x.lon, x.lat] },
       properties: { ...x },
     })),
+  };
+}
+
+function vegetationLinesToFC(lines: VegetationLine[]): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: lines.map((v) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [v.from_lon, v.from_lat],
+          [v.to_lon, v.to_lat],
+        ],
+      },
+      properties: {
+        vegetation_span_id: v.vegetation_span_id,
+        risk_score: v.risk_score,
+        overdue_days: v.overdue_days,
+        treatment_priority: v.treatment_priority ?? '',
+        feeder_id: v.feeder_id,
+      },
+    })),
+  };
+}
+
+function outageLinesToFC(lines: OutageLine[]): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: lines.map((o) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [o.from_lon, o.from_lat],
+          [o.to_lon, o.to_lat],
+        ],
+      },
+      properties: {
+        feeder_id: o.feeder_id,
+        feeder_name: o.feeder_name,
+        outage_count: o.outage_count,
+        saidi_minutes: o.saidi_minutes,
+        customers_interrupted: o.customers_interrupted,
+      },
+    })),
+  };
+}
+
+function hazardPolygonsToFC(polys: HazardPolygon[]): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: polys
+      .filter((p) => p.polygon != null)
+      .map((p) => ({
+        type: 'Feature',
+        geometry: p.polygon as GeoJSON.Polygon,
+        properties: {
+          hazard_zone_id: p.hazard_zone_id,
+          hazard_type: p.hazard_type,
+          zone_name: p.zone_name,
+          severity_score: p.severity_score,
+          radius_km: p.radius_km,
+          seasonal_window: p.seasonal_window,
+        },
+      })),
+  };
+}
+
+function hazardImpactToFC(items: HazardImpactAsset[]): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: items.map((a) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [a.lon, a.lat] },
+      properties: {
+        asset_id: a.asset_id,
+        feeder_id: a.feeder_id,
+        risk_band: a.risk_band,
+        risk_score: a.risk_score,
+        distance_m: a.distance_m,
+        hazard_severity: a.hazard_severity,
+      },
+    })),
+  };
+}
+
+// Build a tiny rectangle around (lat, lon) so the fill-extrusion has a footprint.
+// We size it ~80m at the equator (≈ 0.00072° lat / 0.00081° lon at QLD latitudes).
+function riskExtrusionsToFC(items: RiskExtrusion[]): GeoJSON.FeatureCollection {
+  const halfLat = 0.0008;
+  const halfLon = 0.0009;
+  return {
+    type: 'FeatureCollection',
+    features: items.map((r) => {
+      const ring: GeoJSON.Position[] = [
+        [r.lon - halfLon, r.lat - halfLat],
+        [r.lon + halfLon, r.lat - halfLat],
+        [r.lon + halfLon, r.lat + halfLat],
+        [r.lon - halfLon, r.lat + halfLat],
+        [r.lon - halfLon, r.lat - halfLat],
+      ];
+      return {
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: [ring] },
+        properties: {
+          asset_id: r.asset_id,
+          risk_band: r.risk_band,
+          risk_score: r.risk_score,
+          height_m: r.height_m,
+        },
+      };
+    }),
   };
 }

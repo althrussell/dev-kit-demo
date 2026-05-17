@@ -231,15 +231,60 @@ export function CommandMapPage() {
           </div>
         </div>
 
-        {/* Bottom-left scenario badge — offset right of the Mapbox logo */}
-        <div className="absolute bottom-3 left-28 panel px-3 py-2 text-xs text-muted">
-          Scenario: <span className="text-text-primary font-medium">{SCENARIOS.find((s) => s.id === scenario)?.label}</span>
-          {selectedRegion && (
-            <span>
-              {' · '}
-              <span className="text-text-primary">{regions.find((r) => r.region_id === selectedRegion)?.region_name}</span>
-            </span>
-          )}
+        {/* Bottom-left scenario narrative — explains what each scenario shows.
+            Offset right of the Mapbox logo to avoid the attribution collision. */}
+        <div className="absolute bottom-3 left-28 right-4 pointer-events-none">
+          <div className="panel px-3 py-2 max-w-xl pointer-events-auto">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-electric-cyan animate-pulse" />
+              <span className="font-medium text-text-primary">
+                {bundle?.scenario_summary?.headline ?? SCENARIOS.find((s) => s.id === scenario)?.label}
+              </span>
+              {selectedRegion && (
+                <span className="text-muted">
+                  · <span className="text-text-secondary">{regions.find((r) => r.region_id === selectedRegion)?.region_name}</span>
+                </span>
+              )}
+            </div>
+            {bundle?.scenario_summary && (
+              <>
+                <div className="text-[11px] text-muted leading-snug mt-1">
+                  {bundle.scenario_summary.narrative}
+                </div>
+                <div className="text-[10px] text-muted/80 mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                  <span>{bundle.scenario_summary.counts.assets_shown.toLocaleString()} assets</span>
+                  {bundle.scenario_summary.counts.hazards_shown > 0 && (
+                    <span>{bundle.scenario_summary.counts.hazards_shown} hazards</span>
+                  )}
+                  {bundle.scenario_summary.counts.vegetation_lines > 0 && (
+                    <span className="text-emerald-400/80">
+                      {bundle.scenario_summary.counts.vegetation_lines} vegetation spans
+                    </span>
+                  )}
+                  {bundle.scenario_summary.counts.outage_lines > 0 && (
+                    <span className="text-amber-400/80">
+                      {bundle.scenario_summary.counts.outage_lines} outage feeders
+                    </span>
+                  )}
+                  {bundle.scenario_summary.counts.risk_extrusions > 0 && (
+                    <span className="text-fuchsia-400/80">
+                      {bundle.scenario_summary.counts.risk_extrusions} risk extrusions
+                    </span>
+                  )}
+                  {(bundle.scenario_summary.counts.postgis_impact_assets ?? 0) > 0 && (
+                    <span className="text-rose-400/80" title="Computed server-side via PostGIS ST_DWithin on Lakebase">
+                      {bundle.scenario_summary.counts.postgis_impact_assets} PostGIS impact assets
+                    </span>
+                  )}
+                  {(bundle.scenario_summary.counts.postgis_hazard_polygons ?? 0) > 0 && (
+                    <span className="text-violet-400/80" title="Buffered geographies from Lakebase PostGIS">
+                      {bundle.scenario_summary.counts.postgis_hazard_polygons} PostGIS hazard polygons
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

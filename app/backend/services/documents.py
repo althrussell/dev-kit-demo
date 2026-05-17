@@ -346,10 +346,16 @@ class DocumentSearchService:
         data = resp.json()
 
         answer, citations = self._parse_ka_response(data)
-        # Resolve citations back to local docs (best-effort).
+        # Resolve citations back to local docs (best-effort), de-duping by doc_id.
         resolved: list[dict] = []
+        seen_ids: set[str] = set()
         for c in citations:
             doc = self._resolve_citation(c)
+            cid = (doc.get("document_id") if doc else c.get("document_id")) or ""
+            if cid and cid in seen_ids:
+                continue
+            if cid:
+                seen_ids.add(cid)
             if doc:
                 resolved.append({
                     **{k: doc[k] for k in (
@@ -436,13 +442,58 @@ class DocumentSearchService:
         return None
 
 
+_URL_VOLUME_RE = re.compile(
+    r"/Volumes/[^\s?#]*?/(?P<region>REG-[A-Z]+)/(?P<dtype>[a-z_]+)/(?P<doc>DOC-\d+)\.md"
+)
+_EXCERPT_TEXT_RE = re.compile(r"#:~:text=(?P<frag>[^\"'\s]+)")
+
+
 def _flatten_citation(c: dict) -> dict:
-    """Normalise a heterogeneous citation/annotation into a flat dict."""
+    """Normalise a heterogeneous citation/annotation into a flat dict.
+
+    Handles three common shapes:
+      1. Knowledge Assistant `url_citation` annotations (type=url_citation,
+         url=https://.../Volumes/<catalog>/<schema>/<vol>/<region>/<doctype>/<DOC-...>.md#:~:text=<excerpt>)
+      2. Structured citation dicts with explicit document_id / source_ref.
+      3. Nested `{source: {document_id, ...}}` shapes.
+    """
     out: dict = {}
+
+    # KA url_citation shape
+    url = c.get("url") or ""
+    if isinstance(url, str) and "/Volumes/" in url:
+        m = _URL_VOLUME_RE.search(url)
+        if m:
+            out["document_id"] = m.group("doc")
+            out["document_type"] = m.group("dtype")
+            out["region_id"] = m.group("region")
+            # Reconstruct a clean /Volumes path stripped of fragments + query.
+            vol_path = url.split("#", 1)[0]
+            if "/fs/files" in vol_path:
+                vol_path = vol_path.split("/fs/files", 1)[1]
+            elif "/Volumes/" in vol_path:
+                vol_path = "/" + vol_path.split("/Volumes/", 1)[1]
+                vol_path = "/Volumes/" + vol_path.lstrip("/").split("/Volumes/", 1)[-1] if not vol_path.startswith("/Volumes/") else vol_path
+            out["volume_path"] = vol_path
+        # Pull the text fragment as the excerpt.
+        m2 = _EXCERPT_TEXT_RE.search(url)
+        if m2:
+            from urllib.parse import unquote
+            out["excerpt"] = unquote(m2.group("frag")).replace("\n", " ").strip()
+
+    # Direct fields
     for k in ("document_id", "title", "source_ref", "filename", "uri",
               "volume_path", "region_id", "document_type", "excerpt", "score"):
-        if k in c and c[k]:
+        if c.get(k) and k not in out:
             out[k] = c[k]
+
+    # Title sometimes comes back as `DOC-...md` — extract the bare ID.
+    title = out.get("title") or ""
+    if "document_id" not in out and isinstance(title, str):
+        m3 = re.search(r"(DOC-\d+)", title)
+        if m3:
+            out["document_id"] = m3.group(1)
+
     # Common nested shapes
     src = c.get("source") or c.get("document") or {}
     if isinstance(src, dict):

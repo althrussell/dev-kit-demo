@@ -465,6 +465,322 @@ class DataStore:
             pool = [h for h in pool if h["hazard_type"] == hazard_type]
         return pool
 
+    # ---- scenario-aware bundle ------------------------------------------
+
+    # Per-scenario configuration that drives which hazards / extra layers
+    # are returned, and which preset the frontend should apply.
+    SCENARIO_CONFIG: dict = {
+        "normal": {
+            "hazard_types": None,  # all
+            "asset_filter": None,
+            "headline": "Normal operations",
+            "narrative": "Baseline view across all hazards and asset health bands.",
+            "primary_layers": ["assets", "hazards", "critical_customers", "depots"],
+            "extras": [],
+        },
+        "storm_readiness": {
+            "hazard_types": {"cyclone", "storm", "flood"},
+            "asset_filter": "storm_exposed",
+            "headline": "Storm-season readiness",
+            "narrative": "Cyclone / storm / flood hazard rings overlay on assets with high coastal exposure. Mobile generation and critical customers prioritised.",
+            "primary_layers": ["assets", "hazards", "critical_customers", "mobile_gen"],
+            "extras": ["risk_extrusions"],
+        },
+        "vegetation_program": {
+            "hazard_types": {"bushfire", "heat"},
+            "asset_filter": "vegetation_exposed",
+            "headline": "Vegetation treatment program",
+            "narrative": "Backlog of vegetation spans (treatment overdue) rendered as risk-graded lines. Bushfire hazards retained; storm/flood hidden.",
+            "primary_layers": ["vegetation_lines", "assets", "hazards"],
+            "extras": ["vegetation_lines"],
+        },
+        "reliability_improvement": {
+            "hazard_types": set(),  # no hazards
+            "asset_filter": "reliability",
+            "headline": "Reliability improvement",
+            "narrative": "Top outage-prone feeders highlighted as connecting lines. Outage hot-spots dominate the view.",
+            "primary_layers": ["outage_lines", "assets", "critical_customers"],
+            "extras": ["outage_lines"],
+        },
+        "capex_prioritisation": {
+            "hazard_types": set(),
+            "asset_filter": "capex",
+            "headline": "Capex prioritisation",
+            "narrative": "Ageing assets (install_year < 1985) and high-criticality replacement candidates raised as 3D risk extrusions.",
+            "primary_layers": ["risk_extrusions", "assets", "critical_customers"],
+            "extras": ["risk_extrusions"],
+        },
+        "field_inspection_review": {
+            "hazard_types": set(),
+            "asset_filter": "inspection",
+            "headline": "Field inspection review",
+            "narrative": "Assets whose last inspection is overdue, weighted by access difficulty.",
+            "primary_layers": ["assets", "depots"],
+            "extras": [],
+        },
+    }
+
+    def _apply_scenario_asset_filter(self, candidates: list[dict], scenario: Optional[str]) -> list[dict]:
+        """Filter the asset candidate list with scenario-specific logic.
+
+        Inputs are the enriched dicts produced by `list_assets_for_map` (which
+        contain risk_score / risk_band) but we re-pull source columns from
+        `self.assets` for richer filters (install_year, cyclone_exposure, etc.).
+        """
+        if not scenario or scenario == "normal":
+            return candidates
+        cfg = self.SCENARIO_CONFIG.get(scenario, {})
+        flt = cfg.get("asset_filter")
+        if not flt:
+            return candidates
+
+        # Pre-compute lookups we will need.
+        veg_feeders = {fid for fid in self.veg_by_feeder.keys()}
+        # Outage counts per feeder for reliability scenario.
+        outage_counts = {fid: len(events) for fid, events in self.outages_by_feeder.items()}
+        # Top 30 feeders by outage count (a feeder is "reliability hot" if it's here).
+        reliability_feeders = {
+            fid for fid, _ in sorted(outage_counts.items(), key=lambda kv: -kv[1])[:30]
+        }
+        # Cache of last inspection date per asset for inspection scenario.
+        last_inspection: dict[str, str] = {}
+        for ins in self.inspections:
+            aid = ins.get("asset_id")
+            d = ins.get("inspection_date")
+            if not aid or not d:
+                continue
+            prev = last_inspection.get(aid)
+            if prev is None or d > prev:
+                last_inspection[aid] = d
+
+        kept: list[dict] = []
+        for a in candidates:
+            src = self.assets.get(a["asset_id"], {})
+            if flt == "storm_exposed":
+                if (
+                    _to_float(src.get("cyclone_exposure_score")) > 45
+                    or _to_float(src.get("coastal_corrosion_score")) > 45
+                    or _to_float(src.get("flood_exposure_score")) > 50
+                    or a["risk_band"] in ("high", "critical")
+                ):
+                    kept.append(a)
+            elif flt == "vegetation_exposed":
+                if a["feeder_id"] in veg_feeders and (
+                    a["risk_band"] in ("medium", "high", "critical")
+                    or _to_float(src.get("bushfire_exposure_score")) > 35
+                ):
+                    kept.append(a)
+            elif flt == "reliability":
+                if a["feeder_id"] in reliability_feeders:
+                    kept.append(a)
+            elif flt == "capex":
+                yr = _to_int(src.get("install_year"))
+                if (yr and yr < 1985) or a["risk_score"] >= 70 or _to_float(src.get("criticality_score")) >= 70:
+                    kept.append(a)
+            elif flt == "inspection":
+                d = last_inspection.get(a["asset_id"])
+                # Stale if no inspection on record or older than 24 months.
+                stale = True
+                if d:
+                    try:
+                        ins_date = datetime.fromisoformat(d)
+                        stale = (datetime.utcnow() - ins_date).days > 730
+                    except Exception:
+                        stale = True
+                if stale and (_to_float(src.get("access_difficulty_score")) > 40 or a["risk_band"] in ("medium", "high", "critical")):
+                    kept.append(a)
+            else:
+                kept.append(a)
+        return kept
+
+    def vegetation_lines(self, region_id: Optional[str] = None, limit: int = 600) -> list[dict]:
+        """Vegetation spans rendered as line segments (span → nearest asset).
+
+        Returns the highest-risk overdue spans first so the visible set is the
+        treatment backlog.
+        """
+        rows: list[dict] = []
+        for v in self.vegetation:
+            if region_id and v.get("region_id") != region_id:
+                continue
+            asset = self.assets.get(v.get("nearest_asset_id"))
+            if not asset:
+                continue
+            risk = _to_float(v.get("vegetation_risk_score"))
+            overdue = _to_int(v.get("overdue_days"))
+            # Only include spans that are either overdue or above medium risk.
+            if overdue <= 0 and risk < 40:
+                continue
+            rows.append({
+                "vegetation_span_id": v.get("vegetation_span_id"),
+                "feeder_id": v.get("feeder_id"),
+                "region_id": v.get("region_id"),
+                "from_lat": _to_float(v.get("lat")),
+                "from_lon": _to_float(v.get("lon")),
+                "to_lat": _to_float(asset.get("lat")),
+                "to_lon": _to_float(asset.get("lon")),
+                "risk_score": risk,
+                "overdue_days": overdue,
+                "treatment_priority": v.get("treatment_priority"),
+            })
+        rows.sort(key=lambda r: (-r["overdue_days"], -r["risk_score"]))
+        return rows[:limit]
+
+    def outage_lines(self, region_id: Optional[str] = None, limit: int = 40) -> list[dict]:
+        """Top outage-prone feeders rendered as lines.
+
+        Each feeder line connects the substation centroid to the average asset
+        location for that feeder — gives the map a directed "feeder span" feel
+        even though we don't have true feeder geometry.
+        """
+        feeder_summaries: list[dict] = []
+        for fid, events in self.outages_by_feeder.items():
+            feeder = self.feeders.get(fid)
+            if not feeder:
+                continue
+            if region_id and feeder.get("region_id") != region_id:
+                continue
+            assets = self.assets_by_feeder.get(fid, [])
+            if not assets:
+                continue
+            substation = self.substations.get(feeder.get("substation_id"))
+            if not substation:
+                continue
+            avg_asset_lat = sum(_to_float(a["lat"]) for a in assets) / len(assets)
+            avg_asset_lon = sum(_to_float(a["lon"]) for a in assets) / len(assets)
+            outage_count = len(events)
+            saidi = sum(_to_float(e.get("saidi_minutes")) for e in events)
+            customers_interrupted = sum(_to_int(e.get("customers_interrupted")) for e in events)
+            feeder_summaries.append({
+                "feeder_id": fid,
+                "feeder_name": feeder.get("feeder_name"),
+                "region_id": feeder.get("region_id"),
+                "from_lat": _to_float(substation.get("lat")),
+                "from_lon": _to_float(substation.get("lon")),
+                "to_lat": avg_asset_lat,
+                "to_lon": avg_asset_lon,
+                "outage_count": outage_count,
+                "saidi_minutes": round(saidi, 1),
+                "customers_interrupted": customers_interrupted,
+            })
+        feeder_summaries.sort(key=lambda r: -r["outage_count"])
+        return feeder_summaries[:limit]
+
+    def risk_extrusions(self, candidates: list[dict], limit: int = 80) -> list[dict]:
+        """Top-N assets as 3D extrusion data (lat, lon, height_m).
+
+        Height is proportional to risk_score so the SEQ metro view in storm /
+        capex scenarios shows visible 3D bars where things really matter.
+        """
+        # Already arrives sorted by risk band/score in scenario mode.
+        out = []
+        for a in candidates[:limit]:
+            src = self.assets.get(a["asset_id"], {})
+            criticality = _to_float(src.get("criticality_score"))
+            base_h = 200 + (a["risk_score"] * 30) + (criticality * 12)
+            out.append({
+                "asset_id": a["asset_id"],
+                "lat": a["lat"],
+                "lon": a["lon"],
+                "risk_score": a["risk_score"],
+                "risk_band": a["risk_band"],
+                "height_m": round(base_h, 1),
+                "feeder_id": a["feeder_id"],
+            })
+        return out
+
+    def get_map_bundle(
+        self,
+        scenario: Optional[str] = None,
+        region_id: Optional[str] = None,
+        risk_band: Optional[str] = None,
+        asset_type: Optional[str] = None,
+        asset_limit: int = 4000,
+    ) -> dict:
+        """Build the full scenario-aware map bundle."""
+        scenario_key = scenario or "normal"
+        cfg = self.SCENARIO_CONFIG.get(scenario_key, self.SCENARIO_CONFIG["normal"])
+
+        # Start with the unfiltered candidate list (sort applied for scenario).
+        # We oversample so that after scenario-specific filtering we still hit
+        # a useful asset count.
+        raw_assets = self.list_assets_for_map(
+            region_id=region_id,
+            risk_band=risk_band,
+            asset_type=asset_type,
+            scenario=scenario_key,
+            limit=max(asset_limit * 2, 8000),
+        )
+        scenario_assets = self._apply_scenario_asset_filter(raw_assets, scenario_key)
+        scenario_assets = scenario_assets[:asset_limit]
+
+        # Filter hazards by scenario-allowed types.
+        all_hazards = self.hazards(region_id=region_id)
+        hz_types = cfg.get("hazard_types")
+        if hz_types is None:
+            hazards = all_hazards
+        elif not hz_types:
+            hazards = []
+        else:
+            hazards = [h for h in all_hazards if h.get("hazard_type") in hz_types]
+
+        critical_customers = self.critical_customers_for_region(region_id=region_id)
+        depots = self.depots_for_region(region_id=region_id)
+        mobgen = self.mobile_gen_for_region(region_id=region_id)
+
+        extras: dict = {}
+        if "vegetation_lines" in cfg.get("extras", []):
+            extras["vegetation_lines"] = self.vegetation_lines(region_id=region_id, limit=600)
+        else:
+            extras["vegetation_lines"] = []
+        if "outage_lines" in cfg.get("extras", []):
+            extras["outage_lines"] = self.outage_lines(region_id=region_id, limit=40)
+        else:
+            extras["outage_lines"] = []
+        if "risk_extrusions" in cfg.get("extras", []):
+            extras["risk_extrusions"] = self.risk_extrusions(scenario_assets, limit=80)
+        else:
+            extras["risk_extrusions"] = []
+
+        # KPIs from the (potentially filtered) asset set.
+        high = sum(1 for a in scenario_assets if a["risk_band"] == "high")
+        critical = sum(1 for a in scenario_assets if a["risk_band"] == "critical")
+        customers_exposed = sum(
+            _to_int(self.feeders.get(a["feeder_id"], {}).get("customer_count"))
+            for a in scenario_assets if a["risk_band"] in ("high", "critical")
+        )
+        feeders_count = len({a["feeder_id"] for a in scenario_assets})
+
+        scenario_summary = {
+            "scenario_id": scenario_key,
+            "headline": cfg.get("headline"),
+            "narrative": cfg.get("narrative"),
+            "primary_layers": cfg.get("primary_layers", []),
+            "counts": {
+                "assets_shown": len(scenario_assets),
+                "hazards_shown": len(hazards),
+                "vegetation_lines": len(extras["vegetation_lines"]),
+                "outage_lines": len(extras["outage_lines"]),
+                "risk_extrusions": len(extras["risk_extrusions"]),
+            },
+        }
+
+        return {
+            "assets": scenario_assets,
+            "hazards": hazards,
+            "critical_customers": critical_customers,
+            "depots": depots,
+            "mobile_gen_sites": mobgen,
+            "vegetation_lines": extras["vegetation_lines"],
+            "outage_lines": extras["outage_lines"],
+            "risk_extrusions": extras["risk_extrusions"],
+            "scenario_summary": scenario_summary,
+            "feeders_count": feeders_count,
+            "high_risk_asset_count": high,
+            "critical_asset_count": critical,
+            "customers_exposed": customers_exposed,
+        }
+
     def critical_customers_for_region(self, region_id: Optional[str] = None) -> list[dict]:
         if region_id:
             return self.cc_by_region.get(region_id, [])

@@ -368,3 +368,151 @@ class LakebaseService:
                     "SELECT * FROM app_scenarios WHERE is_active = TRUE ORDER BY scenario_name"
                 )
                 return [dict(r) for r in cur.fetchall()]
+
+    # ------------------------------------------------------------------
+    # PostGIS spatial queries (gridlens_geo schema)
+    # ------------------------------------------------------------------
+    #
+    # Populated by `scripts/bootstrap_lakebase_postgis.py`. Tables:
+    #   gridlens_geo.assets_geom           (geography Point + risk metadata)
+    #   gridlens_geo.hazard_zones_geom     (geography Polygon + Point center)
+    #   gridlens_geo.critical_customers_geom
+    #
+    # Methods here fully-qualify table names so they work regardless of the
+    # session search_path (which the connection sets to `gridlens, public`).
+
+    def assets_within_hazard(
+        self,
+        *,
+        hazard_types: Optional[list[str]] = None,
+        min_severity: float = 50.0,
+        distance_m: float = 20_000.0,
+        region_id: Optional[str] = None,
+        limit: int = 1500,
+    ) -> list[dict]:
+        """Return assets within `distance_m` of a matching hazard's center.
+
+        Uses ST_DWithin on the gridlens_geo geography columns. Server-side
+        spatial filter — much faster than fetching everything and filtering
+        client-side, and demonstrates Lakebase PostGIS in the demo.
+        """
+        sql = """
+            SELECT DISTINCT
+                a.asset_id, a.feeder_id, a.region_id, a.asset_type,
+                a.risk_score, a.risk_band,
+                ST_Y(a.geom::geometry) AS lat,
+                ST_X(a.geom::geometry) AS lon,
+                MIN(ST_Distance(a.geom, h.center)) AS distance_m,
+                MAX(h.severity_score) AS hazard_severity,
+                array_agg(DISTINCT h.hazard_type) AS hazard_types
+            FROM gridlens_geo.assets_geom a
+            JOIN gridlens_geo.hazard_zones_geom h
+              ON ST_DWithin(a.geom, h.center, %(distance_m)s)
+            WHERE TRUE
+        """
+        params: dict = {"distance_m": distance_m, "min_severity": min_severity, "limit": limit}
+        if hazard_types:
+            sql += " AND h.hazard_type = ANY(%(hazard_types)s)"
+            params["hazard_types"] = hazard_types
+        if min_severity:
+            sql += " AND h.severity_score >= %(min_severity)s"
+        if region_id:
+            sql += " AND a.region_id = %(region_id)s"
+            params["region_id"] = region_id
+        sql += """
+            GROUP BY a.asset_id, a.feeder_id, a.region_id, a.asset_type,
+                     a.risk_score, a.risk_band, a.geom
+            ORDER BY MIN(ST_Distance(a.geom, h.center)) ASC
+            LIMIT %(limit)s
+        """
+        with self._conn() as c:
+            with c.cursor() as cur:
+                cur.execute(sql, params)
+                rows = cur.fetchall()
+        return [
+            {
+                "asset_id": r["asset_id"],
+                "feeder_id": r["feeder_id"],
+                "region_id": r["region_id"],
+                "asset_type": r["asset_type"],
+                "risk_score": float(r["risk_score"] or 0.0),
+                "risk_band": r["risk_band"],
+                "lat": float(r["lat"]),
+                "lon": float(r["lon"]),
+                "distance_m": float(r["distance_m"]),
+                "hazard_severity": float(r["hazard_severity"] or 0.0),
+                "hazard_types": list(r["hazard_types"] or []),
+            }
+            for r in rows
+        ]
+
+    def hazard_polygons(
+        self,
+        *,
+        hazard_types: Optional[list[str]] = None,
+        region_id: Optional[str] = None,
+        limit: int = 200,
+    ) -> list[dict]:
+        """Return buffered hazard polygons as GeoJSON Polygon coords.
+
+        Mapbox can render these directly as `fill` layers, which looks much
+        richer than the flat `circle` approximation the in-memory fallback
+        uses.
+        """
+        sql = """
+            SELECT hazard_zone_id, region_id, hazard_type, zone_name,
+                   radius_km, severity_score, seasonal_window,
+                   ST_AsGeoJSON(geom::geometry) AS polygon_json,
+                   ST_Y(center::geometry) AS center_lat,
+                   ST_X(center::geometry) AS center_lon
+            FROM gridlens_geo.hazard_zones_geom
+            WHERE TRUE
+        """
+        params: dict = {"limit": limit}
+        if hazard_types:
+            sql += " AND hazard_type = ANY(%(hazard_types)s)"
+            params["hazard_types"] = hazard_types
+        if region_id:
+            sql += " AND region_id = %(region_id)s"
+            params["region_id"] = region_id
+        sql += " ORDER BY severity_score DESC LIMIT %(limit)s"
+        with self._conn() as c:
+            with c.cursor() as cur:
+                cur.execute(sql, params)
+                rows = cur.fetchall()
+        out: list[dict] = []
+        import json
+        for r in rows:
+            try:
+                geo = json.loads(r["polygon_json"]) if r["polygon_json"] else None
+            except Exception:
+                geo = None
+            out.append({
+                "hazard_zone_id": r["hazard_zone_id"],
+                "region_id": r["region_id"],
+                "hazard_type": r["hazard_type"],
+                "zone_name": r["zone_name"],
+                "radius_km": float(r["radius_km"] or 0.0),
+                "severity_score": float(r["severity_score"] or 0.0),
+                "seasonal_window": r["seasonal_window"],
+                "polygon": geo,
+                "center_lat": float(r["center_lat"]),
+                "center_lon": float(r["center_lon"]),
+            })
+        return out
+
+    def has_postgis(self) -> bool:
+        """Probe whether the gridlens_geo schema/extension is ready."""
+        try:
+            with self._conn() as c:
+                with c.cursor() as cur:
+                    cur.execute(
+                        "SELECT EXISTS ("
+                        "  SELECT 1 FROM information_schema.tables "
+                        "  WHERE table_schema = 'gridlens_geo' AND table_name = 'assets_geom'"
+                        ")"
+                    )
+                    row = cur.fetchone()
+                    return bool(row and row.get("exists"))
+        except Exception:
+            return False

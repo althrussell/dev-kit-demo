@@ -33,12 +33,97 @@ export interface MapAsset {
   status: string;
 }
 
+export interface VegetationLine {
+  vegetation_span_id: string;
+  feeder_id: string;
+  region_id: string;
+  from_lat: number;
+  from_lon: number;
+  to_lat: number;
+  to_lon: number;
+  risk_score: number;
+  overdue_days: number;
+  treatment_priority?: string;
+}
+
+export interface OutageLine {
+  feeder_id: string;
+  feeder_name: string;
+  region_id: string;
+  from_lat: number;
+  from_lon: number;
+  to_lat: number;
+  to_lon: number;
+  outage_count: number;
+  saidi_minutes: number;
+  customers_interrupted: number;
+}
+
+export interface RiskExtrusion {
+  asset_id: string;
+  lat: number;
+  lon: number;
+  risk_score: number;
+  risk_band: RiskBand;
+  height_m: number;
+  feeder_id: string;
+}
+
+export interface ScenarioSummary {
+  scenario_id: ScenarioId;
+  headline: string;
+  narrative: string;
+  primary_layers: string[];
+  counts: {
+    assets_shown: number;
+    hazards_shown: number;
+    vegetation_lines: number;
+    outage_lines: number;
+    risk_extrusions: number;
+    postgis_impact_assets?: number;
+    postgis_hazard_polygons?: number;
+  };
+}
+
+export interface HazardImpactAsset {
+  asset_id: string;
+  feeder_id: string;
+  region_id: string;
+  asset_type: string;
+  risk_score: number;
+  risk_band: RiskBand;
+  lat: number;
+  lon: number;
+  distance_m: number;
+  hazard_severity: number;
+  hazard_types: string[];
+}
+
+export interface HazardPolygon {
+  hazard_zone_id: string;
+  region_id: string;
+  hazard_type: string;
+  zone_name: string;
+  radius_km: number;
+  severity_score: number;
+  seasonal_window: string;
+  polygon: GeoJSON.Polygon | null;
+  center_lat: number;
+  center_lon: number;
+}
+
 export interface MapBundle {
   assets: MapAsset[];
   hazards: HazardZone[];
   critical_customers: CriticalCustomer[];
   depots: Depot[];
   mobile_gen_sites: MobileGenSite[];
+  vegetation_lines?: VegetationLine[];
+  outage_lines?: OutageLine[];
+  risk_extrusions?: RiskExtrusion[];
+  hazard_impact_assets?: HazardImpactAsset[];
+  hazard_polygons?: HazardPolygon[];
+  scenario_summary?: ScenarioSummary;
   feeders_count: number;
   high_risk_asset_count: number;
   critical_asset_count: number;

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type {
@@ -47,11 +47,31 @@ export function MapboxMapView({
 }: MapboxMapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const initialFitRef = useRef(false);
   const pulseAnimRef = useRef<number | null>(null);
   const cycloneAnimRef = useRef<number | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  // Flips true once `map.on('load')` fires — i.e. all sources + layers exist.
+  // The bundle / selected-asset effects gate on this so they don't try to call
+  // `getSource('assets')` before the source is added.
+  const [sourcesReady, setSourcesReady] = useState(false);
   const { layers, selectedAssetId } = useAppState();
   const nav = useNavigate();
+
+  // Keep callbacks in a ref so the init useEffect (which constructs the
+  // expensive mapboxgl.Map instance and wires every event listener) does not
+  // re-run on every parent render. Without this, a new `onAssetClick` arrow
+  // function on each CommandMap render would tear down the map mid-init,
+  // producing "Cannot read properties of undefined (reading 'send')" from
+  // pending workers and a permanently blank canvas.
+  const onAssetClickRef = useRef(onAssetClick);
+  useEffect(() => {
+    onAssetClickRef.current = onAssetClick;
+  }, [onAssetClick]);
+
+  const navRef = useRef(nav);
+  useEffect(() => {
+    navRef.current = nav;
+  }, [nav]);
 
   // ---------------- init ----------------
   useEffect(() => {
@@ -61,11 +81,13 @@ export function MapboxMapView({
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: MAPBOX_STYLE,
-      center: [134.0, -24.0],
-      zoom: 2.4,
+      // Centre Queensland directly. No cinematic globe → flyTo dance —
+      // it was the source of "Map cannot fit within canvas" and worker
+      // teardown errors when the React tree re-rendered mid-animation.
+      center: [146.0, -22.5],
+      zoom: 4.8,
       pitch: 0,
       bearing: 0,
-      projection: { name: 'globe' },
       attributionControl: false,
       antialias: true,
       hash: false,
@@ -74,49 +96,21 @@ export function MapboxMapView({
       new mapboxgl.AttributionControl({ compact: true }),
       'bottom-right',
     );
-    map.addControl(
-      new mapboxgl.NavigationControl({ visualizePitch: true, showCompass: true }),
-      'top-right',
-    );
+    // No NavigationControl — it collides with the React Refresh button at
+    // top-right. Mouse-wheel and pinch already cover zoom + rotate.
     mapRef.current = map;
 
-    map.on('style.load', () => {
-      map.setFog({
-        color: 'rgb(20, 50, 74)',
-        'high-color': 'rgb(7, 24, 39)',
-        'horizon-blend': 0.05,
-        'space-color': 'rgb(7, 12, 22)',
-        'star-intensity': 0.55,
+    // Mapbox does not observe container size changes — only window resize.
+    // In a CSS grid/flex layout the container can grow after first paint,
+    // leaving the canvas stuck at its initial (small) size. Re-fit on every
+    // container resize so the map always fills the available space.
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+      const ro = new ResizeObserver(() => {
+        if (mapRef.current) mapRef.current.resize();
       });
-
-      if (!map.getSource('mapbox-dem')) {
-        map.addSource('mapbox-dem', {
-          type: 'raster-dem',
-          url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-          tileSize: 512,
-          maxzoom: 14,
-        });
-      }
-      map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.4 });
-
-      if (!map.getLayer('hillshade')) {
-        map.addLayer(
-          {
-            id: 'hillshade',
-            type: 'hillshade',
-            source: 'mapbox-dem',
-            layout: { visibility: 'visible' },
-            paint: {
-              'hillshade-shadow-color': '#0B1F33',
-              'hillshade-highlight-color': '#2C5273',
-              'hillshade-accent-color': '#14324A',
-              'hillshade-exaggeration': 0.6,
-            },
-          },
-          firstSymbolLayer(map),
-        );
-      }
-    });
+      ro.observe(containerRef.current);
+      resizeObserverRef.current = ro;
+    }
 
     map.on('load', () => {
       // Animated cyclone storm fan-out — built from hazards by hazard_type=cyclone.
@@ -411,8 +405,8 @@ export function MapboxMapView({
         const f = e.features?.[0];
         if (!f) return;
         const props = f.properties as MapAsset;
-        onAssetClick?.(props);
-        nav(`/assets/${props.asset_id}`);
+        onAssetClickRef.current?.(props);
+        navRef.current(`/assets/${props.asset_id}`);
       });
 
       map.on('mouseenter', 'critical-customers-layer', () => {
@@ -499,72 +493,61 @@ export function MapboxMapView({
       };
       startCyclone();
 
-      // Cinematic opening: globe → fly to Queensland
-      window.setTimeout(() => {
-        if (!mapRef.current) return;
-        mapRef.current.flyTo({
-          center: [146.0, -22.0],
-          zoom: 5.1,
-          pitch: 32,
-          bearing: -10,
-          duration: 3200,
-          essential: true,
-          curve: 1.42,
-        });
-      }, 700);
+      // Signal to the bundle / selected-asset effects that every source +
+      // layer is now present, so it's safe to call `getSource('assets')`,
+      // `setData(...)`, `setLayoutProperty(...)`, etc.
+      setSourcesReady(true);
     });
 
     return () => {
       if (pulseAnimRef.current) cancelAnimationFrame(pulseAnimRef.current);
       if (cycloneAnimRef.current) cancelAnimationFrame(cycloneAnimRef.current);
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
       map.remove();
       mapRef.current = null;
     };
-  }, [nav, onAssetClick, token]);
+    // token is a build-time constant; nav and onAssetClick are accessed via
+    // refs above so this effect intentionally constructs the map exactly once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   // ---------------- bundle ----------------
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !bundle) return;
-    const ensure = (fn: () => void) => {
-      if (!map.isStyleLoaded()) {
-        map.once('style.load', fn);
-      } else {
-        fn();
-      }
-    };
-    ensure(() => {
-      (map.getSource('assets') as mapboxgl.GeoJSONSource | undefined)?.setData(
-        assetsToFC(bundle.assets),
-      );
-      (map.getSource('asset-heat') as mapboxgl.GeoJSONSource | undefined)?.setData(
-        assetsToHeatFC(bundle.assets),
-      );
-      const allHazards = bundle.hazards ?? [];
-      const cyclones = allHazards.filter((h) => h.hazard_type === 'cyclone');
-      const others = allHazards.filter((h) => h.hazard_type !== 'cyclone');
-      (map.getSource('hazards') as mapboxgl.GeoJSONSource | undefined)?.setData(
-        hazardsToFC(others),
-      );
-      (map.getSource('hazards-cyclone') as mapboxgl.GeoJSONSource | undefined)?.setData(
-        hazardsToFC(cyclones),
-      );
-      (map.getSource('critical-customers') as mapboxgl.GeoJSONSource | undefined)?.setData(
-        criticalCustomersToFC(bundle.critical_customers),
-      );
-      (map.getSource('depots') as mapboxgl.GeoJSONSource | undefined)?.setData(
-        depotsToFC(bundle.depots),
-      );
-      (map.getSource('mobile-gen') as mapboxgl.GeoJSONSource | undefined)?.setData(
-        mobileGenToFC(bundle.mobile_gen_sites),
-      );
-    });
-  }, [bundle]);
+    if (!map || !bundle || !sourcesReady) return;
+    (map.getSource('assets') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      assetsToFC(bundle.assets),
+    );
+    (map.getSource('asset-heat') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      assetsToHeatFC(bundle.assets),
+    );
+    const allHazards = bundle.hazards ?? [];
+    const cyclones = allHazards.filter((h) => h.hazard_type === 'cyclone');
+    const others = allHazards.filter((h) => h.hazard_type !== 'cyclone');
+    (map.getSource('hazards') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      hazardsToFC(others),
+    );
+    (map.getSource('hazards-cyclone') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      hazardsToFC(cyclones),
+    );
+    (map.getSource('critical-customers') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      criticalCustomersToFC(bundle.critical_customers),
+    );
+    (map.getSource('depots') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      depotsToFC(bundle.depots),
+    );
+    (map.getSource('mobile-gen') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      mobileGenToFC(bundle.mobile_gen_sites),
+    );
+  }, [bundle, sourcesReady]);
 
   // ---------------- layer toggles ----------------
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !sourcesReady) return;
     const set = (id: string, visible: boolean) => {
       if (!map.getLayer(id)) return;
       map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
@@ -577,7 +560,7 @@ export function MapboxMapView({
     set('critical-customers-layer', layers.critical_customers);
     set('depots-layer', layers.depots);
     set('mobile-gen-layer', layers.mobile_gen);
-  }, [layers]);
+  }, [layers, sourcesReady]);
 
   // ---------------- center / zoom ----------------
   useEffect(() => {
@@ -596,35 +579,10 @@ export function MapboxMapView({
     }
   }, [centerLat, centerLon, zoom]);
 
-  // ---------------- fit-to-data ----------------
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !bundle || initialFitRef.current) return;
-    if (bundle.assets.length < 5) return;
-    const lats = bundle.assets.map((a) => a.lat);
-    const lons = bundle.assets.map((a) => a.lon);
-    const south = Math.min(...lats);
-    const north = Math.max(...lats);
-    const west = Math.min(...lons);
-    const east = Math.max(...lons);
-    // Wait briefly so the opening flyTo finishes before we override it.
-    window.setTimeout(() => {
-      if (!mapRef.current) return;
-      mapRef.current.fitBounds(
-        [
-          [west, south],
-          [east, north],
-        ],
-        { padding: 80, duration: 1400, maxZoom: 9, pitch: 38, bearing: -10 } as any,
-      );
-    }, 3300);
-    initialFitRef.current = true;
-  }, [bundle]);
-
   // ---------------- selected asset ring ----------------
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !bundle) return;
+    if (!map || !bundle || !sourcesReady) return;
     const found = bundle.assets.find((a) => a.asset_id === selectedAssetId);
     const src = map.getSource('selected-asset') as mapboxgl.GeoJSONSource | undefined;
     if (!src) return;
@@ -642,7 +600,7 @@ export function MapboxMapView({
     } else {
       src.setData(emptyFC());
     }
-  }, [selectedAssetId, bundle]);
+  }, [selectedAssetId, bundle, sourcesReady]);
 
   return <div ref={containerRef} className="absolute inset-0 grid-bg" />;
 }

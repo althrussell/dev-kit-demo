@@ -1,201 +1,201 @@
 hazard_zone_id,region_id,hazard_type,zone_name,lat,lon,radius_km,severity_score,seasonal_window
-HZN-000001,REG-SEQ,storm,Gold Coast storm Zone 1,-27.710144,153.252411,5.9,78.6,Aug-Nov
-HZN-000002,REG-SEQ,storm,Brisbane storm Zone 2,-27.352009,153.053397,34.8,33.2,year_round
-HZN-000003,REG-SEQ,storm,Logan storm Zone 3,-27.330736,152.991657,15.3,61.8,Dec-Mar
-HZN-000004,REG-SEQ,heat,Sunshine Coast heat Zone 4,-26.990128,153.46237,19.2,72.5,Nov-Apr
-HZN-000005,REG-SEQ,storm,Logan storm Zone 5,-27.821322,153.368057,22.3,86.0,year_round
-HZN-000006,REG-SEQ,storm,Sunshine Coast storm Zone 6,-26.944203,153.333546,28.4,88.2,Dec-Mar
-HZN-000007,REG-SEQ,heat,Sunshine Coast heat Zone 7,-26.448678,153.411919,6.9,68.7,Aug-Nov
-HZN-000008,REG-SEQ,flood,Ipswich flood Zone 8,-27.767239,152.559753,4.2,73.7,Nov-Apr
-HZN-000009,REG-SEQ,bushfire,Redcliffe bushfire Zone 9,-27.482474,152.764448,12.3,79.1,Aug-Nov
-HZN-000010,REG-SEQ,flood,Ipswich flood Zone 10,-27.875451,153.135587,30.3,83.8,Aug-Nov
-HZN-000011,REG-SEQ,storm,Redcliffe storm Zone 11,-27.149781,153.49416,33.5,75.9,Nov-Apr
-HZN-000012,REG-SEQ,storm,Logan storm Zone 12,-27.834067,153.382204,26.6,44.7,Nov-Apr
-HZN-000013,REG-SEQ,bushfire,Ipswich bushfire Zone 13,-27.749566,152.574354,33.0,94.5,Aug-Nov
-HZN-000014,REG-SEQ,storm,Gold Coast storm Zone 14,-27.995046,153.488662,28.2,44.4,year_round
-HZN-000015,REG-SEQ,storm,Logan storm Zone 15,-27.598074,153.114565,26.8,66.0,Dec-Mar
-HZN-000016,REG-SEQ,storm,Gold Coast storm Zone 16,-28.072279,153.207068,18.7,56.9,Dec-Mar
-HZN-000017,REG-SEQ,storm,Gold Coast storm Zone 17,-27.748331,153.028914,32.1,56.2,Aug-Nov
-HZN-000018,REG-SEQ,flood,Sunshine Coast flood Zone 18,-26.49182,153.121762,32.0,71.3,year_round
-HZN-000019,REG-SEQ,heat,Sunshine Coast heat Zone 19,-26.66184,153.324581,24.1,72.4,Aug-Nov
-HZN-000020,REG-SEQ,flood,Ipswich flood Zone 20,-27.317023,152.764835,7.1,45.4,Dec-Mar
-HZN-000021,REG-SEQ,storm,Logan storm Zone 21,-28.058223,153.050106,9.7,13.6,Aug-Nov
-HZN-000022,REG-SEQ,flood,Sunshine Coast flood Zone 22,-26.584235,153.294122,6.6,63.1,Aug-Nov
-HZN-000023,REG-SEQ,storm,Ipswich storm Zone 23,-27.506053,152.437825,7.7,68.8,year_round
-HZN-000024,REG-SEQ,flood,Brisbane flood Zone 24,-27.818672,152.979676,3.8,64.6,Nov-Apr
-HZN-000025,REG-SEQ,heat,Redcliffe heat Zone 25,-27.63591,152.683785,8.0,48.4,Nov-Apr
-HZN-000026,REG-SEQ,storm,Redcliffe storm Zone 26,-27.499751,152.905276,14.0,34.0,Nov-Apr
-HZN-000027,REG-SEQ,bushfire,Logan bushfire Zone 27,-27.973099,153.193806,10.6,48.2,Nov-Apr
-HZN-000028,REG-SEQ,storm,Gold Coast storm Zone 28,-28.395547,153.42508,30.2,34.8,year_round
-HZN-000029,REG-SEQ,storm,Brisbane storm Zone 29,-27.27754,152.9933,28.5,70.9,year_round
-HZN-000030,REG-SEQ,storm,Brisbane storm Zone 30,-27.35177,152.980072,27.6,60.2,Aug-Nov
-HZN-000031,REG-SEQ,storm,Logan storm Zone 31,-28.087056,153.062745,24.6,75.3,Dec-Mar
-HZN-000032,REG-SEQ,bushfire,Redcliffe bushfire Zone 32,-27.292151,153.535869,6.5,67.5,year_round
-HZN-000033,REG-SEQ,flood,Brisbane flood Zone 33,-27.886469,153.271802,31.2,60.6,year_round
-HZN-000034,REG-SEQ,cyclone,Gold Coast cyclone Zone 34,-27.645362,153.82505,12.4,40.5,Nov-Apr
-HZN-000035,REG-SEQ,flood,Sunshine Coast flood Zone 35,-26.907292,152.868293,15.0,63.0,year_round
-HZN-000036,REG-SEQ,storm,Ipswich storm Zone 36,-27.689289,153.205213,10.1,41.2,Aug-Nov
-HZN-000037,REG-SEQ,storm,Sunshine Coast storm Zone 37,-26.456339,153.197616,26.1,51.9,Dec-Mar
-HZN-000038,REG-SEQ,storm,Logan storm Zone 38,-27.969941,153.030954,32.5,61.2,Nov-Apr
-HZN-000039,REG-SEQ,flood,Ipswich flood Zone 39,-28.055877,152.830812,22.5,92.5,year_round
-HZN-000040,REG-SEQ,storm,Sunshine Coast storm Zone 40,-26.35969,152.802017,31.7,84.5,Dec-Mar
-HZN-000041,REG-MKY,cyclone,Mackay cyclone Zone 1,-21.479351,148.954918,22.3,60.4,Nov-Apr
-HZN-000042,REG-MKY,heat,Proserpine heat Zone 2,-20.543066,148.298879,5.5,63.0,Aug-Nov
-HZN-000043,REG-MKY,cyclone,Bowen cyclone Zone 3,-19.570164,147.875999,26.1,50.9,Dec-Mar
-HZN-000044,REG-MKY,cyclone,Airlie Beach cyclone Zone 4,-19.940823,148.912728,10.7,28.1,Nov-Apr
-HZN-000045,REG-MKY,storm,Airlie Beach storm Zone 5,-20.312936,148.937264,15.1,59.1,Nov-Apr
-HZN-000046,REG-MKY,cyclone,Airlie Beach cyclone Zone 6,-19.988828,148.965558,21.9,56.0,Dec-Mar
-HZN-000047,REG-MKY,flood,Mackay flood Zone 7,-21.149664,148.908657,32.6,66.1,Aug-Nov
-HZN-000048,REG-MKY,coastal_corrosion,Mackay coastal_corrosion Zone 8,-21.547463,149.088057,15.3,76.5,Dec-Mar
-HZN-000049,REG-MKY,cyclone,Proserpine cyclone Zone 9,-20.530546,148.488323,25.1,78.6,Dec-Mar
-HZN-000050,REG-MKY,cyclone,Airlie Beach cyclone Zone 10,-20.409956,148.320421,19.2,58.6,year_round
-HZN-000051,REG-MKY,cyclone,Mackay cyclone Zone 11,-21.529982,149.388473,22.6,38.8,Nov-Apr
-HZN-000052,REG-MKY,cyclone,Airlie Beach cyclone Zone 12,-20.112072,148.327087,4.9,33.2,Aug-Nov
-HZN-000053,REG-MKY,bushfire,Bowen bushfire Zone 13,-20.109256,148.426356,5.2,51.0,Aug-Nov
-HZN-000054,REG-MKY,cyclone,Airlie Beach cyclone Zone 14,-20.679953,148.449733,10.3,81.0,year_round
-HZN-000055,REG-MKY,cyclone,Mackay cyclone Zone 15,-21.586719,148.79225,14.4,45.0,Dec-Mar
-HZN-000056,REG-MKY,cyclone,Airlie Beach cyclone Zone 16,-20.256017,148.939868,32.9,55.5,Nov-Apr
-HZN-000057,REG-MKY,cyclone,Airlie Beach cyclone Zone 17,-20.703487,148.949676,13.3,22.6,Nov-Apr
-HZN-000058,REG-MKY,bushfire,Mackay bushfire Zone 18,-21.059171,148.855906,5.5,60.9,Dec-Mar
-HZN-000059,REG-MKY,cyclone,Proserpine cyclone Zone 19,-20.090353,148.664896,23.2,39.0,year_round
-HZN-000060,REG-MKY,cyclone,Mackay cyclone Zone 20,-21.542092,148.941013,30.1,30.8,year_round
-HZN-000061,REG-MKY,storm,Airlie Beach storm Zone 21,-19.963519,148.401818,5.7,76.4,year_round
-HZN-000062,REG-MKY,cyclone,Proserpine cyclone Zone 22,-20.325206,148.232759,12.3,52.1,Dec-Mar
-HZN-000063,REG-MKY,bushfire,Mackay bushfire Zone 23,-21.443784,149.22604,17.7,80.8,year_round
-HZN-000064,REG-MKY,coastal_corrosion,Bowen coastal_corrosion Zone 24,-20.078441,148.475151,33.9,90.7,year_round
-HZN-000065,REG-MKY,coastal_corrosion,Bowen coastal_corrosion Zone 25,-19.962521,148.224105,4.6,40.5,Aug-Nov
-HZN-000066,REG-MKY,storm,Bowen storm Zone 26,-19.933139,148.14001,21.6,59.5,Aug-Nov
-HZN-000067,REG-MKY,cyclone,Airlie Beach cyclone Zone 27,-20.430596,148.294106,33.8,82.9,year_round
-HZN-000068,REG-MKY,storm,Mackay storm Zone 28,-21.14383,148.862437,19.4,56.1,Nov-Apr
-HZN-000069,REG-MKY,cyclone,Bowen cyclone Zone 29,-19.821664,147.884685,33.5,47.4,Aug-Nov
-HZN-000070,REG-MKY,cyclone,Bowen cyclone Zone 30,-20.180989,148.384332,4.1,56.8,Dec-Mar
-HZN-000071,REG-MKY,cyclone,Airlie Beach cyclone Zone 31,-20.161829,149.037311,17.5,49.7,Nov-Apr
-HZN-000072,REG-MKY,heat,Bowen heat Zone 32,-19.736516,148.287377,7.5,60.3,Nov-Apr
-HZN-000073,REG-MKY,storm,Bowen storm Zone 33,-20.027747,148.538485,6.5,57.7,Dec-Mar
-HZN-000074,REG-MKY,cyclone,Mackay cyclone Zone 34,-20.756323,148.953805,5.8,74.2,Nov-Apr
-HZN-000075,REG-MKY,coastal_corrosion,Mackay coastal_corrosion Zone 35,-21.135798,149.416921,31.1,52.5,year_round
-HZN-000076,REG-MKY,coastal_corrosion,Bowen coastal_corrosion Zone 36,-19.864697,147.970405,4.0,50.4,Dec-Mar
-HZN-000077,REG-MKY,heat,Airlie Beach heat Zone 37,-19.906907,149.096693,15.3,57.3,Dec-Mar
-HZN-000078,REG-MKY,coastal_corrosion,Mackay coastal_corrosion Zone 38,-21.54203,149.141034,12.3,23.0,Dec-Mar
-HZN-000079,REG-MKY,cyclone,Bowen cyclone Zone 39,-19.945491,148.294182,28.8,69.2,year_round
-HZN-000080,REG-MKY,cyclone,Airlie Beach cyclone Zone 40,-19.839151,148.517002,18.8,54.0,Aug-Nov
-HZN-000081,REG-TSV,flood,Port Douglas flood Zone 1,-16.864167,145.811632,4.7,50.4,Nov-Apr
-HZN-000082,REG-TSV,storm,Ingham storm Zone 2,-18.607709,146.20534,23.3,48.5,year_round
-HZN-000083,REG-TSV,flood,Cairns flood Zone 3,-17.20551,145.405126,7.0,15.0,year_round
-HZN-000084,REG-TSV,storm,Ingham storm Zone 4,-19.032191,145.950764,7.9,23.7,Nov-Apr
-HZN-000085,REG-TSV,coastal_corrosion,Port Douglas coastal_corrosion Zone 5,-16.319279,145.878691,32.1,33.4,year_round
-HZN-000086,REG-TSV,flood,Innisfail flood Zone 6,-17.612497,145.884871,34.4,74.8,Dec-Mar
-HZN-000087,REG-TSV,heat,Port Douglas heat Zone 7,-16.652072,145.07461,34.0,55.6,Aug-Nov
-HZN-000088,REG-TSV,cyclone,Port Douglas cyclone Zone 8,-16.51137,145.779124,27.3,58.6,Dec-Mar
-HZN-000089,REG-TSV,coastal_corrosion,Port Douglas coastal_corrosion Zone 9,-16.060802,145.535749,29.3,57.5,year_round
-HZN-000090,REG-TSV,bushfire,Ingham bushfire Zone 10,-18.480878,146.565028,16.8,33.2,Dec-Mar
-HZN-000091,REG-TSV,cyclone,Port Douglas cyclone Zone 11,-16.742819,145.218013,13.7,63.8,Dec-Mar
-HZN-000092,REG-TSV,bushfire,Cairns bushfire Zone 12,-17.121476,145.506319,17.4,30.5,Nov-Apr
-HZN-000093,REG-TSV,heat,Innisfail heat Zone 13,-17.279603,146.169066,32.7,46.3,Nov-Apr
-HZN-000094,REG-TSV,cyclone,Ingham cyclone Zone 14,-18.262266,146.008797,12.5,69.6,Nov-Apr
-HZN-000095,REG-TSV,cyclone,Innisfail cyclone Zone 15,-17.377816,146.209753,29.6,67.8,Nov-Apr
-HZN-000096,REG-TSV,bushfire,Townsville bushfire Zone 16,-19.026731,146.372996,26.6,57.8,Aug-Nov
-HZN-000097,REG-TSV,storm,Innisfail storm Zone 17,-17.474292,146.141694,33.6,80.0,Dec-Mar
-HZN-000098,REG-TSV,coastal_corrosion,Townsville coastal_corrosion Zone 18,-19.126683,146.409246,34.9,61.1,year_round
-HZN-000099,REG-TSV,coastal_corrosion,Townsville coastal_corrosion Zone 19,-19.478285,147.151966,26.0,80.4,Nov-Apr
-HZN-000100,REG-TSV,cyclone,Cairns cyclone Zone 20,-17.115683,146.108158,13.8,78.3,Dec-Mar
-HZN-000101,REG-TSV,flood,Ingham flood Zone 21,-18.827167,146.279605,11.5,81.0,Nov-Apr
-HZN-000102,REG-TSV,flood,Townsville flood Zone 22,-19.052305,146.679457,34.8,16.5,year_round
-HZN-000103,REG-TSV,flood,Port Douglas flood Zone 23,-16.889662,145.04452,8.9,46.2,Aug-Nov
-HZN-000104,REG-TSV,flood,Innisfail flood Zone 24,-17.081223,145.732355,19.6,64.6,Aug-Nov
-HZN-000105,REG-TSV,cyclone,Cairns cyclone Zone 25,-17.092448,145.763142,8.4,8.2,Aug-Nov
-HZN-000106,REG-TSV,coastal_corrosion,Cairns coastal_corrosion Zone 26,-17.249071,146.199553,18.4,52.1,Dec-Mar
-HZN-000107,REG-TSV,flood,Ingham flood Zone 27,-18.609447,146.36412,29.3,53.2,Aug-Nov
-HZN-000108,REG-TSV,flood,Innisfail flood Zone 28,-17.501114,146.146822,31.2,57.2,Dec-Mar
-HZN-000109,REG-TSV,flood,Innisfail flood Zone 29,-17.855539,145.867944,3.2,86.2,Dec-Mar
-HZN-000110,REG-TSV,flood,Ingham flood Zone 30,-19.071596,146.051809,15.1,74.5,Dec-Mar
-HZN-000111,REG-TSV,coastal_corrosion,Ingham coastal_corrosion Zone 31,-18.607195,145.790471,20.1,69.3,year_round
-HZN-000112,REG-TSV,cyclone,Innisfail cyclone Zone 32,-17.088667,146.004941,7.4,84.6,Aug-Nov
-HZN-000113,REG-TSV,storm,Port Douglas storm Zone 33,-16.203418,145.397652,27.1,58.2,Nov-Apr
-HZN-000114,REG-TSV,cyclone,Townsville cyclone Zone 34,-18.842505,146.550342,14.8,21.5,year_round
-HZN-000115,REG-TSV,heat,Port Douglas heat Zone 35,-16.261493,145.73209,26.6,65.9,Aug-Nov
-HZN-000116,REG-TSV,storm,Cairns storm Zone 36,-16.589925,145.791146,11.0,47.2,Dec-Mar
-HZN-000117,REG-TSV,cyclone,Ingham cyclone Zone 37,-18.289277,145.928935,16.4,58.2,Nov-Apr
-HZN-000118,REG-TSV,bushfire,Port Douglas bushfire Zone 38,-16.847357,145.520412,12.3,31.0,Nov-Apr
-HZN-000119,REG-TSV,cyclone,Ingham cyclone Zone 39,-18.200306,146.377301,32.2,62.9,Aug-Nov
-HZN-000120,REG-TSV,flood,Innisfail flood Zone 40,-17.459719,145.601298,26.2,29.9,year_round
-HZN-000121,REG-CQI,heat,Emerald heat Zone 1,-23.918891,148.168089,4.1,22.1,Aug-Nov
-HZN-000122,REG-CQI,heat,Gladstone heat Zone 2,-23.767778,151.375977,3.2,47.6,Aug-Nov
-HZN-000123,REG-CQI,flood,Rockhampton flood Zone 3,-23.387461,150.789222,20.9,17.2,Dec-Mar
-HZN-000124,REG-CQI,coastal_corrosion,Emerald coastal_corrosion Zone 4,-23.849387,148.575128,20.8,72.0,Dec-Mar
-HZN-000125,REG-CQI,bushfire,Rockhampton bushfire Zone 5,-23.522384,150.604687,15.1,45.4,Nov-Apr
-HZN-000126,REG-CQI,heat,Gladstone heat Zone 6,-23.97045,151.088042,18.3,63.9,Aug-Nov
-HZN-000127,REG-CQI,cyclone,Rockhampton cyclone Zone 7,-23.76888,150.587405,6.0,37.3,Dec-Mar
-HZN-000128,REG-CQI,storm,Emerald storm Zone 8,-23.932967,148.590426,10.1,66.9,Aug-Nov
-HZN-000129,REG-CQI,bushfire,Emerald bushfire Zone 9,-23.480242,147.784924,23.6,72.9,Aug-Nov
-HZN-000130,REG-CQI,cyclone,Emerald cyclone Zone 10,-23.173867,148.142927,10.0,42.3,year_round
-HZN-000131,REG-CQI,coastal_corrosion,Rockhampton coastal_corrosion Zone 11,-22.996178,150.761751,12.7,12.1,year_round
-HZN-000132,REG-CQI,flood,Rockhampton flood Zone 12,-22.968275,150.58645,18.1,33.1,Nov-Apr
-HZN-000133,REG-CQI,coastal_corrosion,Emerald coastal_corrosion Zone 13,-23.597832,148.366981,21.9,38.1,Aug-Nov
-HZN-000134,REG-CQI,storm,Gladstone storm Zone 14,-24.110631,150.984495,23.0,76.8,Aug-Nov
-HZN-000135,REG-CQI,storm,Rockhampton storm Zone 15,-23.194781,150.48673,23.6,56.8,Nov-Apr
-HZN-000136,REG-CQI,storm,Emerald storm Zone 16,-23.593567,148.105552,12.6,66.4,Nov-Apr
-HZN-000137,REG-CQI,heat,Emerald heat Zone 17,-23.155508,148.419619,12.2,59.8,Dec-Mar
-HZN-000138,REG-CQI,flood,Gladstone flood Zone 18,-23.71759,150.874188,34.1,40.0,Nov-Apr
-HZN-000139,REG-CQI,cyclone,Rockhampton cyclone Zone 19,-23.509123,150.857682,14.0,42.5,year_round
-HZN-000140,REG-CQI,cyclone,Emerald cyclone Zone 20,-23.843051,148.296071,25.3,51.5,year_round
-HZN-000141,REG-CQI,storm,Gladstone storm Zone 21,-23.642101,151.169673,31.8,73.9,Aug-Nov
-HZN-000142,REG-CQI,flood,Gladstone flood Zone 22,-23.732209,151.352307,7.7,33.5,year_round
-HZN-000143,REG-CQI,bushfire,Emerald bushfire Zone 23,-23.14696,148.529641,6.2,67.7,Dec-Mar
-HZN-000144,REG-CQI,coastal_corrosion,Emerald coastal_corrosion Zone 24,-23.521501,148.192954,33.0,78.8,year_round
-HZN-000145,REG-CQI,bushfire,Emerald bushfire Zone 25,-23.203241,147.823923,21.9,54.6,Nov-Apr
-HZN-000146,REG-CQI,flood,Emerald flood Zone 26,-23.095223,147.835596,5.5,63.4,Dec-Mar
-HZN-000147,REG-CQI,heat,Gladstone heat Zone 27,-23.875982,151.271382,19.6,46.2,Aug-Nov
-HZN-000148,REG-CQI,heat,Gladstone heat Zone 28,-23.572534,151.389654,20.7,46.5,Dec-Mar
-HZN-000149,REG-CQI,flood,Rockhampton flood Zone 29,-23.538552,150.344399,24.8,52.8,year_round
-HZN-000150,REG-CQI,cyclone,Gladstone cyclone Zone 30,-24.058904,151.25456,32.6,49.8,Aug-Nov
-HZN-000151,REG-CQI,storm,Gladstone storm Zone 31,-23.636819,151.191226,11.7,72.3,Aug-Nov
-HZN-000152,REG-CQI,bushfire,Emerald bushfire Zone 32,-23.484285,148.136174,28.2,77.9,Aug-Nov
-HZN-000153,REG-CQI,storm,Gladstone storm Zone 33,-23.804972,151.475076,34.0,29.1,Dec-Mar
-HZN-000154,REG-CQI,flood,Emerald flood Zone 34,-23.084966,148.515229,3.6,64.6,Nov-Apr
-HZN-000155,REG-CQI,cyclone,Gladstone cyclone Zone 35,-23.81423,151.603536,21.6,74.1,year_round
-HZN-000156,REG-CQI,storm,Gladstone storm Zone 36,-23.735501,151.520037,9.0,61.4,Dec-Mar
-HZN-000157,REG-CQI,flood,Emerald flood Zone 37,-23.662133,148.582664,14.5,29.0,year_round
-HZN-000158,REG-CQI,storm,Rockhampton storm Zone 38,-23.585908,150.241919,4.2,87.8,Dec-Mar
-HZN-000159,REG-CQI,flood,Gladstone flood Zone 39,-23.482804,150.875466,29.1,66.1,year_round
-HZN-000160,REG-CQI,flood,Gladstone flood Zone 40,-23.857569,151.140469,8.8,96.3,year_round
-HZN-000161,REG-RW,coastal_corrosion,Roma coastal_corrosion Zone 1,-26.693825,149.155107,10.0,66.5,Nov-Apr
-HZN-000162,REG-RW,heat,Roma heat Zone 2,-26.294654,149.18879,14.7,35.1,year_round
-HZN-000163,REG-RW,bushfire,Mount Isa bushfire Zone 3,-20.582844,139.798128,27.1,25.3,year_round
-HZN-000164,REG-RW,heat,Winton heat Zone 4,-22.063957,143.259037,10.7,77.0,year_round
-HZN-000165,REG-RW,bushfire,Longreach bushfire Zone 5,-23.721439,144.558263,16.3,67.6,Nov-Apr
-HZN-000166,REG-RW,storm,Winton storm Zone 6,-22.285125,142.875226,7.7,57.8,year_round
-HZN-000167,REG-RW,storm,Roma storm Zone 7,-26.529316,149.22124,20.0,41.1,Aug-Nov
-HZN-000168,REG-RW,bushfire,Roma bushfire Zone 8,-26.1505,149.233677,19.6,35.6,year_round
-HZN-000169,REG-RW,bushfire,Winton bushfire Zone 9,-21.944276,143.306957,9.6,44.5,Aug-Nov
-HZN-000170,REG-RW,bushfire,Winton bushfire Zone 10,-22.03988,143.243308,4.2,61.4,Dec-Mar
-HZN-000171,REG-RW,bushfire,Mount Isa bushfire Zone 11,-20.57673,139.77896,11.4,59.8,year_round
-HZN-000172,REG-RW,bushfire,Longreach bushfire Zone 12,-23.6078,144.430093,26.9,61.3,Dec-Mar
-HZN-000173,REG-RW,heat,Longreach heat Zone 13,-23.012773,144.003228,20.8,39.1,Dec-Mar
-HZN-000174,REG-RW,flood,Winton flood Zone 14,-22.692945,143.195653,18.8,23.2,Dec-Mar
-HZN-000175,REG-RW,cyclone,Winton cyclone Zone 15,-22.276252,143.420916,26.8,79.5,year_round
-HZN-000176,REG-RW,bushfire,Mount Isa bushfire Zone 16,-20.885769,139.046979,22.2,53.7,year_round
-HZN-000177,REG-RW,flood,Charleville flood Zone 17,-26.170045,146.19307,4.3,75.6,Dec-Mar
-HZN-000178,REG-RW,coastal_corrosion,Longreach coastal_corrosion Zone 18,-23.08791,144.478637,32.0,42.5,Aug-Nov
-HZN-000179,REG-RW,flood,Winton flood Zone 19,-22.185549,142.752498,18.6,67.9,year_round
-HZN-000180,REG-RW,bushfire,Charleville bushfire Zone 20,-26.531633,146.578772,25.8,87.2,Nov-Apr
-HZN-000181,REG-RW,bushfire,Longreach bushfire Zone 21,-23.478751,144.434993,25.9,46.2,Aug-Nov
-HZN-000182,REG-RW,bushfire,Winton bushfire Zone 22,-22.625425,143.028358,31.2,35.4,Nov-Apr
-HZN-000183,REG-RW,coastal_corrosion,Roma coastal_corrosion Zone 23,-26.795687,148.709773,33.4,64.7,Nov-Apr
-HZN-000184,REG-RW,coastal_corrosion,Winton coastal_corrosion Zone 24,-22.335985,142.887746,24.4,56.1,Dec-Mar
-HZN-000185,REG-RW,bushfire,Longreach bushfire Zone 25,-23.121185,144.28123,16.2,47.9,Aug-Nov
-HZN-000186,REG-RW,cyclone,Winton cyclone Zone 26,-22.763673,143.416712,14.5,35.3,Aug-Nov
-HZN-000187,REG-RW,bushfire,Mount Isa bushfire Zone 27,-20.314948,139.856464,23.6,72.2,year_round
-HZN-000188,REG-RW,bushfire,Longreach bushfire Zone 28,-23.611343,144.465408,10.5,42.6,Dec-Mar
-HZN-000189,REG-RW,heat,Mount Isa heat Zone 29,-21.060334,139.339684,13.2,39.9,Dec-Mar
-HZN-000190,REG-RW,bushfire,Charleville bushfire Zone 30,-26.108425,145.984475,30.9,18.7,Dec-Mar
-HZN-000191,REG-RW,bushfire,Winton bushfire Zone 31,-22.39969,142.849263,14.8,70.4,year_round
-HZN-000192,REG-RW,flood,Mount Isa flood Zone 32,-20.818879,139.249519,7.5,34.8,Aug-Nov
-HZN-000193,REG-RW,storm,Roma storm Zone 33,-26.424556,148.758488,13.0,68.5,Nov-Apr
-HZN-000194,REG-RW,bushfire,Winton bushfire Zone 34,-22.610761,143.468107,10.3,41.6,year_round
-HZN-000195,REG-RW,cyclone,Longreach cyclone Zone 35,-23.84464,143.895258,24.9,39.3,Aug-Nov
-HZN-000196,REG-RW,heat,Mount Isa heat Zone 36,-21.033088,139.10596,22.0,53.4,year_round
-HZN-000197,REG-RW,cyclone,Mount Isa cyclone Zone 37,-21.068183,139.400528,17.6,52.7,Dec-Mar
-HZN-000198,REG-RW,flood,Charleville flood Zone 38,-26.699559,145.972171,34.0,70.5,Dec-Mar
-HZN-000199,REG-RW,coastal_corrosion,Roma coastal_corrosion Zone 39,-26.214124,148.906259,17.5,81.0,Aug-Nov
-HZN-000200,REG-RW,storm,Longreach storm Zone 40,-23.076637,143.988414,3.4,56.3,year_round
+HZN-000001,REG-SEQ,storm,Gold Coast storm Zone 1,-27.587316,152.919519,5.9,78.6,Aug-Nov
+HZN-000002,REG-SEQ,storm,Brisbane storm Zone 2,-27.319303,152.862023,34.8,33.2,year_round
+HZN-000003,REG-SEQ,storm,Logan storm Zone 3,-27.610696,153.030212,15.3,61.8,Dec-Mar
+HZN-000004,REG-SEQ,heat,Sunshine Coast heat Zone 4,-27.174580,152.825580,19.2,72.5,Nov-Apr
+HZN-000005,REG-SEQ,storm,Logan storm Zone 5,-27.877310,153.157992,22.3,86.0,year_round
+HZN-000006,REG-SEQ,storm,Sunshine Coast storm Zone 6,-26.943348,152.612683,28.4,88.2,Dec-Mar
+HZN-000007,REG-SEQ,heat,Sunshine Coast heat Zone 7,-26.630383,152.747757,6.9,68.7,Aug-Nov
+HZN-000008,REG-SEQ,flood,Ipswich flood Zone 8,-27.513242,152.737328,4.2,73.7,Nov-Apr
+HZN-000009,REG-SEQ,bushfire,Redcliffe bushfire Zone 9,-27.707876,152.766936,12.3,79.1,Aug-Nov
+HZN-000010,REG-SEQ,flood,Ipswich flood Zone 10,-27.914160,153.255750,30.3,83.8,Aug-Nov
+HZN-000011,REG-SEQ,storm,Redcliffe storm Zone 11,-27.010854,153.019567,33.5,75.9,Nov-Apr
+HZN-000012,REG-SEQ,storm,Logan storm Zone 12,-28.150982,153.107490,26.6,44.7,Nov-Apr
+HZN-000013,REG-SEQ,bushfire,Ipswich bushfire Zone 13,-27.463594,152.769144,33.0,94.5,Aug-Nov
+HZN-000014,REG-SEQ,storm,Gold Coast storm Zone 14,-27.922033,153.122787,28.2,44.4,year_round
+HZN-000015,REG-SEQ,storm,Logan storm Zone 15,-27.636609,153.127552,26.8,66.0,Dec-Mar
+HZN-000016,REG-SEQ,storm,Gold Coast storm Zone 16,-27.895234,153.190620,18.7,56.9,Dec-Mar
+HZN-000017,REG-SEQ,storm,Gold Coast storm Zone 17,-27.661410,153.108841,32.1,56.2,Aug-Nov
+HZN-000018,REG-SEQ,flood,Sunshine Coast flood Zone 18,-26.512022,152.711306,32.0,71.3,year_round
+HZN-000019,REG-SEQ,heat,Sunshine Coast heat Zone 19,-26.707618,152.879594,24.1,72.4,Aug-Nov
+HZN-000020,REG-SEQ,flood,Ipswich flood Zone 20,-27.296153,153.029688,7.1,45.4,Dec-Mar
+HZN-000021,REG-SEQ,storm,Logan storm Zone 21,-28.079811,153.186201,9.7,13.6,Aug-Nov
+HZN-000022,REG-SEQ,flood,Sunshine Coast flood Zone 22,-26.510707,152.934962,6.6,63.1,Aug-Nov
+HZN-000023,REG-SEQ,storm,Ipswich storm Zone 23,-27.541904,152.852632,7.7,68.8,year_round
+HZN-000024,REG-SEQ,flood,Brisbane flood Zone 24,-27.756706,152.982702,3.8,64.6,Nov-Apr
+HZN-000025,REG-SEQ,heat,Redcliffe heat Zone 25,-27.713536,152.856954,8.0,48.4,Nov-Apr
+HZN-000026,REG-SEQ,storm,Redcliffe storm Zone 26,-27.545015,152.972698,14.0,34.0,Nov-Apr
+HZN-000027,REG-SEQ,bushfire,Logan bushfire Zone 27,-27.859378,153.191754,10.6,48.2,Nov-Apr
+HZN-000028,REG-SEQ,storm,Gold Coast storm Zone 28,-27.963645,153.352069,30.2,34.8,year_round
+HZN-000029,REG-SEQ,storm,Brisbane storm Zone 29,-27.329881,152.918686,28.5,70.9,year_round
+HZN-000030,REG-SEQ,storm,Brisbane storm Zone 30,-27.622347,153.049270,27.6,60.2,Aug-Nov
+HZN-000031,REG-SEQ,storm,Logan storm Zone 31,-27.959694,153.106283,24.6,75.3,Dec-Mar
+HZN-000032,REG-SEQ,bushfire,Redcliffe bushfire Zone 32,-27.630971,153.138903,6.5,67.5,year_round
+HZN-000033,REG-SEQ,flood,Brisbane flood Zone 33,-28.171468,153.305772,31.2,60.6,year_round
+HZN-000034,REG-SEQ,cyclone,Gold Coast cyclone Zone 34,-28.055151,153.184602,12.4,40.5,Nov-Apr
+HZN-000035,REG-SEQ,flood,Sunshine Coast flood Zone 35,-27.185430,153.037855,15.0,63.0,year_round
+HZN-000036,REG-SEQ,storm,Ipswich storm Zone 36,-27.496599,153.072906,10.1,41.2,Aug-Nov
+HZN-000037,REG-SEQ,storm,Sunshine Coast storm Zone 37,-26.653994,152.754040,26.1,51.9,Dec-Mar
+HZN-000038,REG-SEQ,storm,Logan storm Zone 38,-28.012262,152.997642,32.5,61.2,Nov-Apr
+HZN-000039,REG-SEQ,flood,Ipswich flood Zone 39,-27.711081,152.940878,22.5,92.5,year_round
+HZN-000040,REG-SEQ,storm,Sunshine Coast storm Zone 40,-26.589209,152.905517,31.7,84.5,Dec-Mar
+HZN-000041,REG-MKY,cyclone,Mackay cyclone Zone 1,-21.400016,149.188203,22.3,60.4,Nov-Apr
+HZN-000042,REG-MKY,heat,Proserpine heat Zone 2,-20.398043,148.336681,5.5,63.0,Aug-Nov
+HZN-000043,REG-MKY,cyclone,Bowen cyclone Zone 3,-20.051518,148.253310,26.1,50.9,Dec-Mar
+HZN-000044,REG-MKY,cyclone,Airlie Beach cyclone Zone 4,-20.335293,148.615415,10.7,28.1,Nov-Apr
+HZN-000045,REG-MKY,storm,Airlie Beach storm Zone 5,-20.574460,148.351388,15.1,59.1,Nov-Apr
+HZN-000046,REG-MKY,cyclone,Airlie Beach cyclone Zone 6,-20.572563,148.535317,21.9,56.0,Dec-Mar
+HZN-000047,REG-MKY,flood,Mackay flood Zone 7,-21.308068,148.980648,32.6,66.1,Aug-Nov
+HZN-000048,REG-MKY,coastal_corrosion,Mackay coastal_corrosion Zone 8,-21.460382,149.337916,15.3,76.5,Dec-Mar
+HZN-000049,REG-MKY,cyclone,Proserpine cyclone Zone 9,-20.468575,148.493454,25.1,78.6,Dec-Mar
+HZN-000050,REG-MKY,cyclone,Airlie Beach cyclone Zone 10,-20.351517,148.330336,19.2,58.6,year_round
+HZN-000051,REG-MKY,cyclone,Mackay cyclone Zone 11,-21.341229,149.164801,22.6,38.8,Nov-Apr
+HZN-000052,REG-MKY,cyclone,Airlie Beach cyclone Zone 12,-20.073796,148.213690,4.9,33.2,Aug-Nov
+HZN-000053,REG-MKY,bushfire,Bowen bushfire Zone 13,-19.992620,147.886767,5.2,51.0,Aug-Nov
+HZN-000054,REG-MKY,cyclone,Airlie Beach cyclone Zone 14,-20.572307,148.628624,10.3,81.0,year_round
+HZN-000055,REG-MKY,cyclone,Mackay cyclone Zone 15,-21.255854,149.143982,14.4,45.0,Dec-Mar
+HZN-000056,REG-MKY,cyclone,Airlie Beach cyclone Zone 16,-20.433638,148.307611,32.9,55.5,Nov-Apr
+HZN-000057,REG-MKY,cyclone,Airlie Beach cyclone Zone 17,-20.253062,148.263158,13.3,22.6,Nov-Apr
+HZN-000058,REG-MKY,bushfire,Mackay bushfire Zone 18,-21.015162,148.990691,5.5,60.9,Dec-Mar
+HZN-000059,REG-MKY,cyclone,Proserpine cyclone Zone 19,-20.398132,148.470896,23.2,39.0,year_round
+HZN-000060,REG-MKY,cyclone,Mackay cyclone Zone 20,-21.442347,149.051109,30.1,30.8,year_round
+HZN-000061,REG-MKY,storm,Airlie Beach storm Zone 21,-19.904201,148.054493,5.7,76.4,year_round
+HZN-000062,REG-MKY,cyclone,Proserpine cyclone Zone 22,-19.930615,148.065750,12.3,52.1,Dec-Mar
+HZN-000063,REG-MKY,bushfire,Mackay bushfire Zone 23,-21.239979,149.345856,17.7,80.8,year_round
+HZN-000064,REG-MKY,coastal_corrosion,Bowen coastal_corrosion Zone 24,-20.146118,147.970037,33.9,90.7,year_round
+HZN-000065,REG-MKY,coastal_corrosion,Bowen coastal_corrosion Zone 25,-20.020466,148.264421,4.6,40.5,Aug-Nov
+HZN-000066,REG-MKY,storm,Bowen storm Zone 26,-20.058888,148.122468,21.6,59.5,Aug-Nov
+HZN-000067,REG-MKY,cyclone,Airlie Beach cyclone Zone 27,-20.317689,148.647916,33.8,82.9,year_round
+HZN-000068,REG-MKY,storm,Mackay storm Zone 28,-21.204377,148.971980,19.4,56.1,Nov-Apr
+HZN-000069,REG-MKY,cyclone,Bowen cyclone Zone 29,-20.017088,148.138107,33.5,47.4,Aug-Nov
+HZN-000070,REG-MKY,cyclone,Bowen cyclone Zone 30,-20.119543,148.120622,4.1,56.8,Dec-Mar
+HZN-000071,REG-MKY,cyclone,Airlie Beach cyclone Zone 31,-20.489458,148.540989,17.5,49.7,Nov-Apr
+HZN-000072,REG-MKY,heat,Bowen heat Zone 32,-19.884314,148.150226,7.5,60.3,Nov-Apr
+HZN-000073,REG-MKY,storm,Bowen storm Zone 33,-20.176907,147.870736,6.5,57.7,Dec-Mar
+HZN-000074,REG-MKY,cyclone,Mackay cyclone Zone 34,-21.313718,149.082327,5.8,74.2,Nov-Apr
+HZN-000075,REG-MKY,coastal_corrosion,Mackay coastal_corrosion Zone 35,-21.143281,148.875713,31.1,52.5,year_round
+HZN-000076,REG-MKY,coastal_corrosion,Bowen coastal_corrosion Zone 36,-20.032579,148.035933,4.0,50.4,Dec-Mar
+HZN-000077,REG-MKY,heat,Airlie Beach heat Zone 37,-20.367234,148.540891,15.3,57.3,Dec-Mar
+HZN-000078,REG-MKY,coastal_corrosion,Mackay coastal_corrosion Zone 38,-21.362619,149.048078,12.3,23.0,Dec-Mar
+HZN-000079,REG-MKY,cyclone,Bowen cyclone Zone 39,-19.957008,148.025047,28.8,69.2,year_round
+HZN-000080,REG-MKY,cyclone,Airlie Beach cyclone Zone 40,-19.954547,148.102499,18.8,54.0,Aug-Nov
+HZN-000081,REG-TSV,flood,Port Douglas flood Zone 1,-17.034178,145.688064,4.7,50.4,Nov-Apr
+HZN-000082,REG-TSV,storm,Ingham storm Zone 2,-18.552101,145.871686,23.3,48.5,year_round
+HZN-000083,REG-TSV,flood,Cairns flood Zone 3,-17.421956,145.309120,7.0,15.0,year_round
+HZN-000084,REG-TSV,storm,Ingham storm Zone 4,-18.772163,145.834608,7.9,23.7,Nov-Apr
+HZN-000085,REG-TSV,coastal_corrosion,Port Douglas coastal_corrosion Zone 5,-16.807542,145.658678,32.1,33.4,year_round
+HZN-000086,REG-TSV,flood,Innisfail flood Zone 6,-17.354416,146.029001,34.4,74.8,Dec-Mar
+HZN-000087,REG-TSV,heat,Port Douglas heat Zone 7,-17.075996,145.510046,34.0,55.6,Aug-Nov
+HZN-000088,REG-TSV,cyclone,Port Douglas cyclone Zone 8,-17.025206,145.388402,27.3,58.6,Dec-Mar
+HZN-000089,REG-TSV,coastal_corrosion,Port Douglas coastal_corrosion Zone 9,-16.892732,145.566000,29.3,57.5,year_round
+HZN-000090,REG-TSV,bushfire,Ingham bushfire Zone 10,-18.574599,145.866331,16.8,33.2,Dec-Mar
+HZN-000091,REG-TSV,cyclone,Port Douglas cyclone Zone 11,-16.936921,145.448806,13.7,63.8,Dec-Mar
+HZN-000092,REG-TSV,bushfire,Cairns bushfire Zone 12,-17.178247,145.308558,17.4,30.5,Nov-Apr
+HZN-000093,REG-TSV,heat,Innisfail heat Zone 13,-17.467625,145.752721,32.7,46.3,Nov-Apr
+HZN-000094,REG-TSV,cyclone,Ingham cyclone Zone 14,-18.772890,145.972295,12.5,69.6,Nov-Apr
+HZN-000095,REG-TSV,cyclone,Innisfail cyclone Zone 15,-17.495228,145.969783,29.6,67.8,Nov-Apr
+HZN-000096,REG-TSV,bushfire,Townsville bushfire Zone 16,-18.541071,145.938976,26.6,57.8,Aug-Nov
+HZN-000097,REG-TSV,storm,Innisfail storm Zone 17,-17.542347,145.730644,33.6,80.0,Dec-Mar
+HZN-000098,REG-TSV,coastal_corrosion,Townsville coastal_corrosion Zone 18,-19.133772,146.690501,34.9,61.1,year_round
+HZN-000099,REG-TSV,coastal_corrosion,Townsville coastal_corrosion Zone 19,-19.370204,146.614112,26.0,80.4,Nov-Apr
+HZN-000100,REG-TSV,cyclone,Cairns cyclone Zone 20,-17.401446,145.949862,13.8,78.3,Dec-Mar
+HZN-000101,REG-TSV,flood,Ingham flood Zone 21,-18.542834,146.201504,11.5,81.0,Nov-Apr
+HZN-000102,REG-TSV,flood,Townsville flood Zone 22,-19.436592,146.643826,34.8,16.5,year_round
+HZN-000103,REG-TSV,flood,Port Douglas flood Zone 23,-16.936821,145.350219,8.9,46.2,Aug-Nov
+HZN-000104,REG-TSV,flood,Innisfail flood Zone 24,-17.057565,145.657825,19.6,64.6,Aug-Nov
+HZN-000105,REG-TSV,cyclone,Cairns cyclone Zone 25,-16.759390,145.722900,8.4,8.2,Aug-Nov
+HZN-000106,REG-TSV,coastal_corrosion,Cairns coastal_corrosion Zone 26,-17.543296,145.819127,18.4,52.1,Dec-Mar
+HZN-000107,REG-TSV,flood,Ingham flood Zone 27,-18.597744,145.992420,29.3,53.2,Aug-Nov
+HZN-000108,REG-TSV,flood,Innisfail flood Zone 28,-17.416295,145.834236,31.2,57.2,Dec-Mar
+HZN-000109,REG-TSV,flood,Innisfail flood Zone 29,-17.700415,145.673447,3.2,86.2,Dec-Mar
+HZN-000110,REG-TSV,flood,Ingham flood Zone 30,-18.741248,145.968419,15.1,74.5,Dec-Mar
+HZN-000111,REG-TSV,coastal_corrosion,Ingham coastal_corrosion Zone 31,-18.529349,146.104249,20.1,69.3,year_round
+HZN-000112,REG-TSV,cyclone,Innisfail cyclone Zone 32,-16.898961,145.580904,7.4,84.6,Aug-Nov
+HZN-000113,REG-TSV,storm,Port Douglas storm Zone 33,-17.136759,145.252528,27.1,58.2,Nov-Apr
+HZN-000114,REG-TSV,cyclone,Townsville cyclone Zone 34,-18.518329,145.983033,14.8,21.5,year_round
+HZN-000115,REG-TSV,heat,Port Douglas heat Zone 35,-16.781835,145.501316,26.6,65.9,Aug-Nov
+HZN-000116,REG-TSV,storm,Cairns storm Zone 36,-16.894841,145.457204,11.0,47.2,Dec-Mar
+HZN-000117,REG-TSV,cyclone,Ingham cyclone Zone 37,-18.701438,146.219773,16.4,58.2,Nov-Apr
+HZN-000118,REG-TSV,bushfire,Port Douglas bushfire Zone 38,-17.103339,145.267962,12.3,31.0,Nov-Apr
+HZN-000119,REG-TSV,cyclone,Ingham cyclone Zone 39,-18.553002,146.003776,32.2,62.9,Aug-Nov
+HZN-000120,REG-TSV,flood,Innisfail flood Zone 40,-17.230140,145.446983,26.2,29.9,year_round
+HZN-000121,REG-CQI,heat,Emerald heat Zone 1,-23.362855,148.097840,4.1,22.1,Aug-Nov
+HZN-000122,REG-CQI,heat,Gladstone heat Zone 2,-23.781383,150.996128,3.2,47.6,Aug-Nov
+HZN-000123,REG-CQI,flood,Rockhampton flood Zone 3,-23.307062,150.678728,20.9,17.2,Dec-Mar
+HZN-000124,REG-CQI,coastal_corrosion,Emerald coastal_corrosion Zone 4,-23.514261,148.230478,20.8,72.0,Dec-Mar
+HZN-000125,REG-CQI,bushfire,Rockhampton bushfire Zone 5,-23.383179,150.392630,15.1,45.4,Nov-Apr
+HZN-000126,REG-CQI,heat,Gladstone heat Zone 6,-23.949398,151.188415,18.3,63.9,Aug-Nov
+HZN-000127,REG-CQI,cyclone,Rockhampton cyclone Zone 7,-23.539021,150.425756,6.0,37.3,Dec-Mar
+HZN-000128,REG-CQI,storm,Emerald storm Zone 8,-23.482525,148.167555,10.1,66.9,Aug-Nov
+HZN-000129,REG-CQI,bushfire,Emerald bushfire Zone 9,-23.583216,148.009638,23.6,72.9,Aug-Nov
+HZN-000130,REG-CQI,cyclone,Emerald cyclone Zone 10,-23.433114,148.325146,10.0,42.3,year_round
+HZN-000131,REG-CQI,coastal_corrosion,Rockhampton coastal_corrosion Zone 11,-22.979373,150.685945,12.7,12.1,year_round
+HZN-000132,REG-CQI,flood,Rockhampton flood Zone 12,-23.128768,150.523620,18.1,33.1,Nov-Apr
+HZN-000133,REG-CQI,coastal_corrosion,Emerald coastal_corrosion Zone 13,-23.626831,148.256097,21.9,38.1,Aug-Nov
+HZN-000134,REG-CQI,storm,Gladstone storm Zone 14,-23.950532,151.149432,23.0,76.8,Aug-Nov
+HZN-000135,REG-CQI,storm,Rockhampton storm Zone 15,-23.303694,150.154435,23.6,56.8,Nov-Apr
+HZN-000136,REG-CQI,storm,Emerald storm Zone 16,-23.367958,148.292380,12.6,66.4,Nov-Apr
+HZN-000137,REG-CQI,heat,Emerald heat Zone 17,-23.407489,148.289967,12.2,59.8,Dec-Mar
+HZN-000138,REG-CQI,flood,Gladstone flood Zone 18,-23.787362,151.189481,34.1,40.0,Nov-Apr
+HZN-000139,REG-CQI,cyclone,Rockhampton cyclone Zone 19,-23.493620,150.523172,14.0,42.5,year_round
+HZN-000140,REG-CQI,cyclone,Emerald cyclone Zone 20,-23.557552,147.987510,25.3,51.5,year_round
+HZN-000141,REG-CQI,storm,Gladstone storm Zone 21,-23.982552,151.021290,31.8,73.9,Aug-Nov
+HZN-000142,REG-CQI,flood,Gladstone flood Zone 22,-23.682028,151.053634,7.7,33.5,year_round
+HZN-000143,REG-CQI,bushfire,Emerald bushfire Zone 23,-23.383971,148.011026,6.2,67.7,Dec-Mar
+HZN-000144,REG-CQI,coastal_corrosion,Emerald coastal_corrosion Zone 24,-23.361739,148.279546,33.0,78.8,year_round
+HZN-000145,REG-CQI,bushfire,Emerald bushfire Zone 25,-23.669579,148.133675,21.9,54.6,Nov-Apr
+HZN-000146,REG-CQI,flood,Emerald flood Zone 26,-23.426882,148.283490,5.5,63.4,Dec-Mar
+HZN-000147,REG-CQI,heat,Gladstone heat Zone 27,-23.719151,151.112780,19.6,46.2,Aug-Nov
+HZN-000148,REG-CQI,heat,Gladstone heat Zone 28,-23.758183,150.903862,20.7,46.5,Dec-Mar
+HZN-000149,REG-CQI,flood,Rockhampton flood Zone 29,-23.504808,150.254372,24.8,52.8,year_round
+HZN-000150,REG-CQI,cyclone,Gladstone cyclone Zone 30,-23.752098,151.205733,32.6,49.8,Aug-Nov
+HZN-000151,REG-CQI,storm,Gladstone storm Zone 31,-23.795534,150.877469,11.7,72.3,Aug-Nov
+HZN-000152,REG-CQI,bushfire,Emerald bushfire Zone 32,-23.599243,148.295422,28.2,77.9,Aug-Nov
+HZN-000153,REG-CQI,storm,Gladstone storm Zone 33,-23.986950,151.077441,34.0,29.1,Dec-Mar
+HZN-000154,REG-CQI,flood,Emerald flood Zone 34,-23.475013,148.059751,3.6,64.6,Nov-Apr
+HZN-000155,REG-CQI,cyclone,Gladstone cyclone Zone 35,-23.903743,151.197682,21.6,74.1,year_round
+HZN-000156,REG-CQI,storm,Gladstone storm Zone 36,-23.839315,151.297592,9.0,61.4,Dec-Mar
+HZN-000157,REG-CQI,flood,Emerald flood Zone 37,-23.650798,148.038949,14.5,29.0,year_round
+HZN-000158,REG-CQI,storm,Rockhampton storm Zone 38,-23.406883,150.376409,4.2,87.8,Dec-Mar
+HZN-000159,REG-CQI,flood,Gladstone flood Zone 39,-23.106975,150.406261,29.1,66.1,year_round
+HZN-000160,REG-CQI,flood,Gladstone flood Zone 40,-23.841583,150.979021,8.8,96.3,year_round
+HZN-000161,REG-RW,coastal_corrosion,Roma coastal_corrosion Zone 1,-26.729332,148.643897,10.0,66.5,Nov-Apr
+HZN-000162,REG-RW,heat,Roma heat Zone 2,-26.698501,148.687665,14.7,35.1,year_round
+HZN-000163,REG-RW,bushfire,Mount Isa bushfire Zone 3,-20.730506,139.323450,27.1,25.3,year_round
+HZN-000164,REG-RW,heat,Winton heat Zone 4,-22.456781,143.024134,10.7,77.0,year_round
+HZN-000165,REG-RW,bushfire,Longreach bushfire Zone 5,-23.498751,144.386418,16.3,67.6,Nov-Apr
+HZN-000166,REG-RW,storm,Winton storm Zone 6,-22.550812,143.108581,7.7,57.8,year_round
+HZN-000167,REG-RW,storm,Roma storm Zone 7,-26.405583,148.630519,20.0,41.1,Aug-Nov
+HZN-000168,REG-RW,bushfire,Roma bushfire Zone 8,-26.512116,148.789557,19.6,35.6,year_round
+HZN-000169,REG-RW,bushfire,Winton bushfire Zone 9,-22.449155,143.147260,9.6,44.5,Aug-Nov
+HZN-000170,REG-RW,bushfire,Winton bushfire Zone 10,-22.426481,142.883038,4.2,61.4,Dec-Mar
+HZN-000171,REG-RW,bushfire,Mount Isa bushfire Zone 11,-20.616164,139.520733,11.4,59.8,year_round
+HZN-000172,REG-RW,bushfire,Longreach bushfire Zone 12,-23.605690,144.340850,26.9,61.3,Dec-Mar
+HZN-000173,REG-RW,heat,Longreach heat Zone 13,-23.441280,144.164335,20.8,39.1,Dec-Mar
+HZN-000174,REG-RW,flood,Winton flood Zone 14,-22.372403,143.025339,18.8,23.2,Dec-Mar
+HZN-000175,REG-RW,cyclone,Winton cyclone Zone 15,-22.469043,142.908494,26.8,79.5,year_round
+HZN-000176,REG-RW,bushfire,Mount Isa bushfire Zone 16,-20.680032,139.635220,22.2,53.7,year_round
+HZN-000177,REG-RW,flood,Charleville flood Zone 17,-26.269511,146.417579,4.3,75.6,Dec-Mar
+HZN-000178,REG-RW,coastal_corrosion,Longreach coastal_corrosion Zone 18,-23.455383,144.369854,32.0,42.5,Aug-Nov
+HZN-000179,REG-RW,flood,Winton flood Zone 19,-22.219946,142.954368,18.6,67.9,year_round
+HZN-000180,REG-RW,bushfire,Charleville bushfire Zone 20,-26.448365,146.392716,25.8,87.2,Nov-Apr
+HZN-000181,REG-RW,bushfire,Longreach bushfire Zone 21,-23.470582,144.428382,25.9,46.2,Aug-Nov
+HZN-000182,REG-RW,bushfire,Winton bushfire Zone 22,-22.237736,143.047149,31.2,35.4,Nov-Apr
+HZN-000183,REG-RW,coastal_corrosion,Roma coastal_corrosion Zone 23,-26.673001,148.800036,33.4,64.7,Nov-Apr
+HZN-000184,REG-RW,coastal_corrosion,Winton coastal_corrosion Zone 24,-22.514174,143.154621,24.4,56.1,Dec-Mar
+HZN-000185,REG-RW,bushfire,Longreach bushfire Zone 25,-23.305487,144.197504,16.2,47.9,Aug-Nov
+HZN-000186,REG-RW,cyclone,Winton cyclone Zone 26,-22.341066,143.200554,14.5,35.3,Aug-Nov
+HZN-000187,REG-RW,bushfire,Mount Isa bushfire Zone 27,-20.645348,139.641846,23.6,72.2,year_round
+HZN-000188,REG-RW,bushfire,Longreach bushfire Zone 28,-23.281692,144.235616,10.5,42.6,Dec-Mar
+HZN-000189,REG-RW,heat,Mount Isa heat Zone 29,-20.620317,139.537260,13.2,39.9,Dec-Mar
+HZN-000190,REG-RW,bushfire,Charleville bushfire Zone 30,-26.432486,146.187381,30.9,18.7,Dec-Mar
+HZN-000191,REG-RW,bushfire,Winton bushfire Zone 31,-22.387449,143.168939,14.8,70.4,year_round
+HZN-000192,REG-RW,flood,Mount Isa flood Zone 32,-20.817127,139.347620,7.5,34.8,Aug-Nov
+HZN-000193,REG-RW,storm,Roma storm Zone 33,-26.640612,148.618170,13.0,68.5,Nov-Apr
+HZN-000194,REG-RW,bushfire,Winton bushfire Zone 34,-22.286651,142.882515,10.3,41.6,year_round
+HZN-000195,REG-RW,cyclone,Longreach cyclone Zone 35,-23.592646,144.221950,24.9,39.3,Aug-Nov
+HZN-000196,REG-RW,heat,Mount Isa heat Zone 36,-20.630596,139.414660,22.0,53.4,year_round
+HZN-000197,REG-RW,cyclone,Mount Isa cyclone Zone 37,-20.631853,139.389593,17.6,52.7,Dec-Mar
+HZN-000198,REG-RW,flood,Charleville flood Zone 38,-26.385744,146.134292,34.0,70.5,Dec-Mar
+HZN-000199,REG-RW,coastal_corrosion,Roma coastal_corrosion Zone 39,-26.430309,148.625823,17.5,81.0,Aug-Nov
+HZN-000200,REG-RW,storm,Longreach storm Zone 40,-23.316541,144.181111,3.4,56.3,year_round

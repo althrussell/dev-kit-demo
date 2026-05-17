@@ -1,0 +1,26 @@
+{
+  "genie": {
+    "display_name": "GridLens Queensland - Network Intelligence",
+    "space_id": "01f151db7aae1f8fac01233234dc1487"
+  },
+  "ka": {
+    "endpoint_name": "ka-4e3844f7-endpoint",
+    "name": "gridlens-asset-docs",
+    "tile_id": "4e3844f7-442c-4c44-991b-06771db08da1"
+  },
+  "lakebase": {
+    "autoscale_max_cu": 2.0,
+    "autoscale_min_cu": 0.5,
+    "branch_id": "production",
+    "database": "databricks_postgres",
+    "endpoint_name": "projects/gridlens/branches/production/endpoints/primary",
+    "host": "ep-fragrant-wildflower-d6jdqrzp.database.ap-southeast-2.cloud.databricks.com",
+    "project_name": "projects/gridlens",
+    "scale_to_zero_seconds": 300
+  },
+  "mas": {
+    "endpoint_name": "mas-7d93f3fa-endpoint",
+    "name": "gridlens-supervisor",
+    "tile_id": "7d93f3fa-db34-4431-a9d9-9bba79320845"
+  }
+}

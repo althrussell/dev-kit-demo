@@ -269,6 +269,24 @@ def asset_documents(asset_id: str):
     return out
 
 
+@app.get("/api/documents/search")
+def documents_search(
+    q: str,
+    region_id: str | None = None,
+    top_k: int = 6,
+):
+    """Knowledge-Assistant-backed document search.
+
+    Falls back to local keyword search when the KA endpoint env var is unset
+    or the KA call fails (see DocumentSearchService.semantic_search).
+    """
+    if not q or not q.strip():
+        raise HTTPException(400, detail="query parameter `q` is required")
+    return docs_service.semantic_search(  # type: ignore[union-attr]
+        q.strip(), region_id=region_id, top_k=top_k
+    )
+
+
 @app.get("/api/documents/{document_id}")
 def document_full(document_id: str):
     full = docs_service.read_full(document_id)  # type: ignore[union-attr]

@@ -1,27 +1,43 @@
 """
 Genie service.
 
-When `GENIE_SPACE_ID` is configured, this proxies the question to the
-Genie Conversation API on Databricks (see docs/genie-space-setup.md).
+Two modes, picked at request time:
 
-For the local demo and when Genie is not available, this implements a
-deterministic fallback that maps a small set of trusted questions to
-real SQL-style answers computed from the in-memory data_store. This
-guarantees that the demo always shows credible, grounded analytics
-without ungrounded LLM output.
+  1. **Real Genie Space** — when `GENIE_SPACE_ID` is configured, every
+     `ask()` is sent to the Databricks Genie Conversation API
+     (`WorkspaceClient.genie.start_conversation_and_wait`). The returned
+     SQL + rows are shaped into the existing
+     `{summary, sql, columns, rows, cards, chart_type, business_definitions}`
+     contract so the frontend doesn't need to change. Errors fall back to
+     the deterministic fallback below.
+
+  2. **Local fallback** — when `GENIE_SPACE_ID` is unset (local dev
+     without a Databricks profile, smoke tests), `GenieFallback` answers
+     a small set of trusted questions deterministically from the
+     in-memory DataStore.
 """
 
 from __future__ import annotations
 
+import datetime as _dt
+import logging
+import os
 import re
-from typing import Callable
+import threading
+from typing import Any, Callable, Optional
 
 from app.backend.services.data_store import DataStore
+
+logger = logging.getLogger(__name__)
 
 
 def _norm(s: str) -> str:
     return re.sub(r"[^a-z0-9 ]+", " ", s.lower()).strip()
 
+
+# ----------------------------------------------------------------------------
+# Local fallback (used in dev and when Genie call fails)
+# ----------------------------------------------------------------------------
 
 class GenieFallback:
     """Deterministic, source-grounded answers for trusted questions."""
@@ -56,17 +72,13 @@ class GenieFallback:
                 resp = fn()
                 resp["question"] = question
                 return resp
-        # Unknown question — produce a region risk overview as best fallback.
         resp = self._q_storm_risk()
         resp["question"] = question
         resp["summary"] = (
             "I don't have a tuned answer for that question. Showing the regional "
-            "risk overview as a starting point — refer to docs/genie-space-setup.md "
-            "for the list of trusted questions."
+            "risk overview as a starting point."
         )
         return resp
-
-    # ---- Tuned answers ---------------------------------------------------
 
     def _q_storm_risk(self) -> dict:
         summary = self.ds.regional_summary()
@@ -93,10 +105,7 @@ class GenieFallback:
                 "sub_label": f"{r['high_risk_assets']} high / {r['critical_risk_assets']} critical",
             })
         return {
-            "summary": (
-                "Region risk ranking by storm-season high + critical asset counts, "
-                "with vegetation backlog and planned remediation coverage."
-            ),
+            "summary": "Region risk ranking by storm-season high + critical asset counts.",
             "sql": (
                 "SELECT region_name, high_risk_assets, critical_risk_assets, vegetation_backlog, "
                 "planned_work_count, critical_customer_count_exposed "
@@ -104,11 +113,8 @@ class GenieFallback:
                 "ORDER BY (high_risk_assets + critical_risk_assets) DESC;"
             ),
             "columns": [
-                "Region",
-                "High-risk assets",
-                "Critical-risk assets",
-                "Vegetation backlog",
-                "Planned remediation coverage",
+                "Region", "High-risk assets", "Critical-risk assets",
+                "Vegetation backlog", "Planned remediation coverage",
                 "Critical customers exposed",
             ],
             "rows": rows,
@@ -123,17 +129,17 @@ class GenieFallback:
         }
 
     def _q_veg_outages(self) -> dict:
-        # Top feeders by vegetation outages in the last 12 months.
-        from datetime import datetime, timedelta
-        cutoff = datetime.utcnow() - timedelta(days=365)
+        cutoff = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=365)
         veg_count: dict[str, int] = {}
         for o in self.ds.outages:
             if o.get("cause_category") != "vegetation":
                 continue
             try:
-                start = datetime.fromisoformat(o["outage_start"])
+                start = _dt.datetime.fromisoformat(o["outage_start"].replace("Z", "+00:00"))
             except Exception:
                 continue
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=_dt.timezone.utc)
             if start < cutoff:
                 continue
             veg_count[o["feeder_id"]] = veg_count.get(o["feeder_id"], 0) + 1
@@ -200,10 +206,7 @@ class GenieFallback:
             out.append([r["region_name"], risky, r["planned_work_count"], f"{cov:.1f}%"])
         out.sort(key=lambda x: -float(x[3].rstrip("%")))
         return {
-            "summary": (
-                "Planned remediation coverage by region — share of high/critical "
-                "assets covered by an approved or scheduled work order."
-            ),
+            "summary": "Planned remediation coverage by region.",
             "sql": (
                 "SELECT region_name, (high_risk_assets + critical_risk_assets) AS risky_assets, "
                 "planned_work_count, "
@@ -220,7 +223,6 @@ class GenieFallback:
         }
 
     def _q_prioritise_work(self) -> dict:
-        # Top feeders by (high+critical assets * customer exposure).
         ranked = []
         summaries = self.ds.feeder_summary()
         for s in summaries:
@@ -271,21 +273,119 @@ class GenieFallback:
         }
 
 
+# ----------------------------------------------------------------------------
+# Real Genie Conversation API
+# ----------------------------------------------------------------------------
+
 class GenieService:
+    """Routes questions to the real Genie space, with deterministic fallback."""
+
     _instance: "GenieService | None" = None
+    _lock = threading.Lock()
 
     @classmethod
     def instance(cls) -> "GenieService":
-        if cls._instance is None:
-            cls._instance = GenieService()
-        return cls._instance
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = GenieService()
+            return cls._instance
 
     def __init__(self) -> None:
         from app.backend.config import settings
-        self.space_id = settings.genie_space_id
+        self.space_id = settings.genie_space_id or os.getenv("GENIE_SPACE_ID", "")
         self.fallback = GenieFallback()
+        self._ws = None
+
+    def _workspace_client(self):
+        if self._ws is not None:
+            return self._ws
+        from databricks.sdk import WorkspaceClient
+        self._ws = WorkspaceClient()
+        return self._ws
 
     def ask(self, question: str) -> dict:
-        # In production, we would call the Genie Conversation API here.
-        # For the demo we always use the trusted fallback.
-        return self.fallback.ask(question)
+        if not self.space_id:
+            logger.info("GENIE_SPACE_ID not set; using fallback for %r", question[:80])
+            return self.fallback.ask(question)
+        try:
+            return self._ask_genie(question)
+        except Exception as e:
+            logger.warning("Genie call failed (%s); using fallback for %r", e, question[:80])
+            resp = self.fallback.ask(question)
+            resp["summary"] = (
+                f"Genie call failed ({type(e).__name__}); returning a deterministic "
+                f"fallback answer. Original summary: {resp.get('summary')}"
+            )
+            return resp
+
+    def _ask_genie(self, question: str) -> dict:
+        w = self._workspace_client()
+        logger.info("Genie ask (space=%s): %r", self.space_id, question[:80])
+        msg = w.genie.start_conversation_and_wait(
+            space_id=self.space_id,
+            content=question,
+        )
+        # The completed message has attachments; the SQL attachment carries
+        # the query + (optionally) execution result.
+        attachments = list(getattr(msg, "attachments", []) or [])
+        text_summary = ""
+        for a in attachments:
+            text = getattr(a, "text", None)
+            if text is not None:
+                content = getattr(text, "content", "") or ""
+                if content:
+                    text_summary = content
+                    break
+        # Find a SQL/query attachment.
+        sql_text = ""
+        columns: list[str] = []
+        rows: list[list[Any]] = []
+        sql_attachment_id: Optional[str] = None
+        for a in attachments:
+            q = getattr(a, "query", None)
+            if q is not None:
+                sql_text = getattr(q, "query", "") or ""
+                sql_attachment_id = getattr(a, "attachment_id", None)
+                break
+        # If we have a SQL attachment, fetch the executed result rows.
+        if sql_attachment_id and msg.conversation_id and msg.id:
+            try:
+                qr = w.genie.get_message_query_result_by_attachment(
+                    space_id=self.space_id,
+                    conversation_id=msg.conversation_id,
+                    message_id=msg.id,
+                    attachment_id=sql_attachment_id,
+                )
+                stmt = getattr(qr, "statement_response", None)
+                if stmt is not None:
+                    manifest = getattr(stmt, "manifest", None)
+                    if manifest is not None and getattr(manifest, "schema", None) is not None:
+                        columns = [c.name for c in (manifest.schema.columns or [])]
+                    result = getattr(stmt, "result", None)
+                    if result is not None and getattr(result, "data_array", None):
+                        rows = list(result.data_array)
+            except Exception as e:
+                logger.info("Genie result fetch failed (%s)", e)
+
+        cards = []
+        if rows and columns:
+            # Best-effort: first column is label, second is numeric → top-3 cards.
+            for r in rows[:3]:
+                if len(r) >= 2:
+                    cards.append({"label": str(r[0]), "value": str(r[1]), "sub_label": ""})
+
+        return {
+            "question": question,
+            "summary": text_summary or f"Genie answered using {len(rows)} rows.",
+            "sql": sql_text,
+            "columns": columns,
+            "rows": rows,
+            "cards": cards,
+            "chart_type": "bar" if (rows and columns and len(columns) >= 2) else "table",
+            "business_definitions": [],
+            "genie": {
+                "space_id": self.space_id,
+                "conversation_id": msg.conversation_id,
+                "message_id": msg.id,
+            },
+        }

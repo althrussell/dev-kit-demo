@@ -1,0 +1,13 @@
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.5
+python-multipart>=0.0.6
+requests>=2.31
+# Lakebase Autoscaling (Postgres) is the only persistence layer; psycopg3
+# with the binary build avoids any libpq install gymnastics in the app
+# container.
+psycopg[binary]>=3.1
+# Databricks SDK >=0.81 includes the w.postgres surface we use to mint
+# Lakebase OAuth tokens and resolve endpoint host info at runtime.
+databricks-sdk>=0.81
+databricks-sql-connector>=3.3

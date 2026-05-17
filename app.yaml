@@ -1,0 +1,64 @@
+command:
+  - "uvicorn"
+  - "app.backend.main:app"
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8000"
+
+env:
+  # Unity Catalog targets the silver/gold demo schemas under anzgt_may.
+  - name: DATABRICKS_CATALOG
+    value: "anzgt_may"
+  - name: DATABRICKS_SCHEMA_SILVER
+    value: "energyq_silver"
+  - name: DATABRICKS_SCHEMA_GOLD
+    value: "energyq_gold"
+  - name: DATABRICKS_VOLUME_PATH
+    value: "/Volumes/anzgt_may/energyq/asset_docs"
+  - name: USE_LOCAL_DATA
+    value: "true"
+
+  # Read the 800 synthetic markdown documents from the UC volume at startup
+  # rather than shipping them inside the app source bundle. Cuts ~2 minutes
+  # off each deploy and is the architecturally correct RAG path.
+  - name: USE_VOLUME_DOCS
+    value: "true"
+
+  # ------------------------------------------------------------------
+  # Real Databricks AI primitives (provisioned by
+  # scripts/provision_databricks_agents.py).
+  # ------------------------------------------------------------------
+
+  # Supervisor MAS — gridlens-supervisor — coordinates the network
+  # analytics (Genie) and document intelligence (KA) agents.
+  - name: AGENTBRICKS_SUPERVISOR_ENDPOINT
+    value: "mas-7d93f3fa-endpoint"
+
+  # Knowledge Assistant — gridlens-asset-docs — RAG over
+  # /Volumes/anzgt_may/energyq/asset_docs (800 inspection reports,
+  # work orders, vegetation plans, storm responses, maintenance
+  # standards).
+  - name: KNOWLEDGE_ASSISTANT_ENDPOINT
+    value: "ka-4e3844f7-endpoint"
+
+  # Genie Space — gridlens-network-intel — NL→SQL over the
+  # energyq_silver and energyq_gold tables.
+  - name: GENIE_SPACE_ID
+    value: "01f151db7aae1f8fac01233234dc1487"
+
+  # ------------------------------------------------------------------
+  # Lakebase Autoscaling (managed Postgres for OLTP work packages /
+  # recommendations / scenarios). The app SP authenticates with its
+  # client ID and a short-lived OAuth token minted by the backend.
+  # ------------------------------------------------------------------
+  - name: LAKEBASE_PROJECT_NAME
+    value: "gridlens"
+  - name: LAKEBASE_BRANCH
+    value: "production"
+  - name: LAKEBASE_ENDPOINT
+    value: "primary"
+  - name: LAKEBASE_DATABASE
+    value: "databricks_postgres"
+  - name: LAKEBASE_SCHEMA
+    value: "gridlens"

@@ -12,6 +12,8 @@ import {
   Search,
   Loader2,
   Sparkles,
+  PanelRightClose,
+  PanelRightOpen,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MapView } from '../components/MapView';
@@ -53,6 +55,15 @@ export function CommandMapPage() {
   const [bundle, setBundle] = useState<MapBundle | null>(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [rightCollapsed, setRightCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('gridlens.rightCollapsed') === '1';
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('gridlens.rightCollapsed', rightCollapsed ? '1' : '0');
+  }, [rightCollapsed]);
 
   const centerLat = useMemo(() => regions.find((r) => r.region_id === selectedRegion)?.centre_lat ?? null, [regions, selectedRegion]);
   const centerLon = useMemo(() => regions.find((r) => r.region_id === selectedRegion)?.centre_lon ?? null, [regions, selectedRegion]);
@@ -87,7 +98,14 @@ export function CommandMapPage() {
   }, [bundle]);
 
   return (
-    <div className="h-full grid grid-cols-[18rem_minmax(0,1fr)_22rem]">
+    <div
+      className="h-full grid transition-[grid-template-columns] duration-300 ease-out"
+      style={{
+        gridTemplateColumns: rightCollapsed
+          ? '18rem minmax(0,1fr) 2.5rem'
+          : '18rem minmax(0,1fr) 22rem',
+      }}
+    >
       {/* Left rail: layers + scenarios + search */}
       <div className="border-r border-border/40 overflow-y-auto px-4 py-4 space-y-5">
         <div>
@@ -213,8 +231,8 @@ export function CommandMapPage() {
           </div>
         </div>
 
-        {/* Bottom-left scenario badge */}
-        <div className="absolute bottom-3 left-3 panel px-3 py-2 text-xs text-muted">
+        {/* Bottom-left scenario badge — offset right of the Mapbox logo */}
+        <div className="absolute bottom-3 left-28 panel px-3 py-2 text-xs text-muted">
           Scenario: <span className="text-text-primary font-medium">{SCENARIOS.find((s) => s.id === scenario)?.label}</span>
           {selectedRegion && (
             <span>
@@ -225,77 +243,122 @@ export function CommandMapPage() {
         </div>
       </div>
 
-      {/* Right: stats + recommendation */}
-      <div className="border-l border-border/40 overflow-y-auto px-4 py-4 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <Kpi label="Assets visible" value={bundle?.assets.length ?? 0} />
-          <Kpi label="Feeders" value={bundle?.feeders_count ?? 0} />
-          <Kpi
-            label="High risk"
-            value={bundle?.high_risk_asset_count ?? 0}
-            accent="#FFB020"
-          />
-          <Kpi
-            label="Critical"
-            value={bundle?.critical_asset_count ?? 0}
-            accent="#E5484D"
-          />
-          <Kpi
-            label="Critical customers"
-            value={bundle?.critical_customers.length ?? 0}
-            accent="#FFB020"
-          />
-          <Kpi
-            label="Customers exposed"
-            value={bundle?.customers_exposed ?? 0}
-          />
-        </div>
-
-        <div className="panel p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[11px] font-semibold tracking-wider uppercase text-muted">Top recommendation</h3>
-            <Sparkles className="w-3.5 h-3.5 text-electric-cyan" />
+      {/* Right: stats + recommendation (collapsible) */}
+      {rightCollapsed ? (
+        <button
+          onClick={() => setRightCollapsed(false)}
+          className="border-l border-border/40 bg-panel/60 hover:bg-panel transition-colors flex flex-col items-center justify-start py-3 text-muted hover:text-text-primary group"
+          title="Expand right panel"
+          aria-label="Expand right panel"
+        >
+          <PanelRightOpen className="w-4 h-4" />
+          <div className="mt-3 text-[10px] tracking-[0.18em] uppercase [writing-mode:vertical-rl] rotate-180">
+            Insights
           </div>
-          {topRecommendation ? (
-            <div className="space-y-3">
-              <div className="text-sm leading-relaxed">{topRecommendation.reason}</div>
-              <div className="text-xs text-muted">
-                Focus asset:{' '}
-                <span className="font-mono text-text-primary">{topRecommendation.asset_id}</span>
-              </div>
-              <div className="flex gap-2 pt-1">
-                <button
-                  className="btn-secondary text-xs"
-                  onClick={() => nav(`/assets/${topRecommendation.asset_id}`)}
+          {bundle && (bundle.critical_asset_count > 0 || bundle.high_risk_asset_count > 0) && (
+            <div className="mt-3 flex flex-col items-center gap-1.5">
+              {bundle.critical_asset_count > 0 && (
+                <span
+                  className="text-[10px] font-semibold rounded-md px-1.5 py-0.5"
+                  style={{ color: '#E5484D', backgroundColor: 'rgba(229,72,77,0.10)' }}
+                  title={`${bundle.critical_asset_count} critical assets`}
                 >
-                  Open Asset 360 <ChevronRight className="w-3 h-3" />
-                </button>
-                <button
-                  className="btn-primary text-xs"
-                  onClick={() => nav('/ai-investigation')}
+                  {bundle.critical_asset_count}
+                </span>
+              )}
+              {bundle.high_risk_asset_count > 0 && (
+                <span
+                  className="text-[10px] font-semibold rounded-md px-1.5 py-0.5"
+                  style={{ color: '#FFB020', backgroundColor: 'rgba(255,176,32,0.10)' }}
+                  title={`${bundle.high_risk_asset_count} high-risk assets`}
                 >
-                  Ask AI <Sparkles className="w-3 h-3" />
-                </button>
-              </div>
+                  {bundle.high_risk_asset_count}
+                </span>
+              )}
             </div>
-          ) : (
-            <div className="text-sm text-muted">No high-risk assets in current view.</div>
+          )}
+        </button>
+      ) : (
+        <div className="border-l border-border/40 overflow-y-auto px-4 py-4 space-y-4 relative">
+          <button
+            onClick={() => setRightCollapsed(true)}
+            className="absolute top-3 right-3 p-1 rounded-md text-muted hover:text-text-primary hover:bg-panel-soft/80 transition-colors"
+            title="Collapse right panel"
+            aria-label="Collapse right panel"
+          >
+            <PanelRightClose className="w-4 h-4" />
+          </button>
+
+          <div className="grid grid-cols-2 gap-3 pr-7">
+            <Kpi label="Assets visible" value={bundle?.assets.length ?? 0} />
+            <Kpi label="Feeders" value={bundle?.feeders_count ?? 0} />
+            <Kpi
+              label="High risk"
+              value={bundle?.high_risk_asset_count ?? 0}
+              accent="#FFB020"
+            />
+            <Kpi
+              label="Critical"
+              value={bundle?.critical_asset_count ?? 0}
+              accent="#E5484D"
+            />
+            <Kpi
+              label="Critical customers"
+              value={bundle?.critical_customers.length ?? 0}
+              accent="#FFB020"
+            />
+            <Kpi
+              label="Customers exposed"
+              value={bundle?.customers_exposed ?? 0}
+            />
+          </div>
+
+          <div className="panel p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] font-semibold tracking-wider uppercase text-muted">Top recommendation</h3>
+              <Sparkles className="w-3.5 h-3.5 text-electric-cyan" />
+            </div>
+            {topRecommendation ? (
+              <div className="space-y-3">
+                <div className="text-sm leading-relaxed">{topRecommendation.reason}</div>
+                <div className="text-xs text-muted">
+                  Focus asset:{' '}
+                  <span className="font-mono text-text-primary">{topRecommendation.asset_id}</span>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    className="btn-secondary text-xs"
+                    onClick={() => nav(`/assets/${topRecommendation.asset_id}`)}
+                  >
+                    Open Asset 360 <ChevronRight className="w-3 h-3" />
+                  </button>
+                  <button
+                    className="btn-primary text-xs"
+                    onClick={() => nav('/ai-investigation')}
+                  >
+                    Ask AI <Sparkles className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-muted">No high-risk assets in current view.</div>
+            )}
+          </div>
+
+          {selectedAssetId && (
+            <div className="panel p-4">
+              <h3 className="text-[11px] font-semibold tracking-wider uppercase text-muted mb-2">Selected asset</h3>
+              <div className="font-mono text-sm">{selectedAssetId}</div>
+              <button
+                className="btn-secondary text-xs mt-3"
+                onClick={() => nav(`/assets/${selectedAssetId}`)}
+              >
+                Open Asset 360 <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
           )}
         </div>
-
-        {selectedAssetId && (
-          <div className="panel p-4">
-            <h3 className="text-[11px] font-semibold tracking-wider uppercase text-muted mb-2">Selected asset</h3>
-            <div className="font-mono text-sm">{selectedAssetId}</div>
-            <button
-              className="btn-secondary text-xs mt-3"
-              onClick={() => nav(`/assets/${selectedAssetId}`)}
-            >
-              Open Asset 360 <ChevronRight className="w-3 h-3" />
-            </button>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

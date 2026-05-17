@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { MessageSquare, SendHorizonal, Loader2, Database } from 'lucide-react';
 import { api } from '../lib/api';
 import type { GenieAnswer } from '../types';
+import { MarkdownBody } from '../components/MarkdownBody';
 import {
   Bar,
   BarChart,
@@ -38,8 +39,8 @@ export function GenieExplorerPage() {
   };
 
   return (
-    <div className="h-full grid grid-cols-[24rem_1fr]">
-      <div className="border-r border-border/40 overflow-y-auto px-5 py-5 space-y-3">
+    <div className="h-full grid grid-cols-[24rem_minmax(0,1fr)]">
+      <div className="border-r border-border/40 overflow-y-auto px-5 py-5 space-y-3 min-w-0">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-electric-cyan" />
           <h2 className="text-sm font-semibold tracking-tight">Suggested questions</h2>
@@ -67,8 +68,8 @@ export function GenieExplorerPage() {
         </div>
       </div>
 
-      <div className="flex flex-col h-full">
-        <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="flex flex-col h-full min-w-0">
+        <div className="flex-1 overflow-y-auto px-8 py-6 min-w-0">
           {!answer && !loading && !error && (
             <div className="panel p-10 text-center max-w-xl mx-auto">
               <Database className="w-8 h-8 mx-auto text-electric-cyan" />
@@ -127,9 +128,13 @@ function AnswerView({ answer }: { answer: GenieAnswer }) {
   });
 
   return (
-    <div className="space-y-4 max-w-4xl">
-      <div className="panel p-5 space-y-3">
-        <h3 className="text-lg font-semibold tracking-tight">{answer.summary}</h3>
+    <div className="space-y-4 max-w-4xl min-w-0">
+      <div className="panel p-5 space-y-3 min-w-0">
+        <MarkdownBody
+          source={answer.summary}
+          size="base"
+          className="text-text-primary [&_p]:my-0 [&_p]:text-text-primary [&_p]:font-medium [&_p]:text-lg [&_p]:leading-snug"
+        />
         {answer.cards && answer.cards.length > 0 && (
           <div className="grid grid-cols-3 gap-2">
             {answer.cards.map((card, i) => (
@@ -146,7 +151,7 @@ function AnswerView({ answer }: { answer: GenieAnswer }) {
       </div>
 
       {objectRows.length > 0 && (
-        <div className="panel p-5 space-y-3">
+        <div className="panel p-5 space-y-3 min-w-0">
           <h4 className="text-[11px] uppercase tracking-wider text-muted">Result</h4>
           {answer.chart_type === 'bar' && answer.columns.length >= 2 && (
             <div className="h-64">
@@ -211,14 +216,14 @@ function AnswerView({ answer }: { answer: GenieAnswer }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="panel p-5 space-y-2">
+      <div className="grid grid-cols-2 gap-4 min-w-0">
+        <div className="panel p-5 space-y-2 min-w-0">
           <h4 className="text-[11px] uppercase tracking-wider text-muted">Generated SQL</h4>
-          <pre className="text-[11px] font-mono leading-relaxed text-text-secondary whitespace-pre-wrap bg-deep-navy/60 rounded-md p-3 border border-border/40 overflow-x-auto">
+          <pre className="text-[11px] font-mono leading-relaxed text-text-secondary whitespace-pre-wrap break-words bg-deep-navy/60 rounded-md p-3 border border-border/40 overflow-x-auto">
 {answer.sql || '-- not available'}
           </pre>
         </div>
-        <div className="panel p-5 space-y-2">
+        <div className="panel p-5 space-y-2 min-w-0">
           <h4 className="text-[11px] uppercase tracking-wider text-muted">Business definitions</h4>
           {(answer.business_definitions ?? []).length === 0 ? (
             <p className="text-sm text-muted">No business definitions attached.</p>

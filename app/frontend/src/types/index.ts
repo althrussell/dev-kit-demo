@@ -69,17 +69,32 @@ export interface RiskExtrusion {
   feeder_id: string;
 }
 
+export interface InspectionStaleAsset {
+  asset_id: string;
+  lat: number;
+  lon: number;
+  feeder_id: string;
+  region_id: string;
+  risk_band: RiskBand;
+  overdue_days: number;
+  last_inspection_date: string | null;
+  access_difficulty_score: number;
+}
+
 export interface ScenarioSummary {
   scenario_id: ScenarioId;
   headline: string;
   narrative: string;
   primary_layers: string[];
+  accent_color?: string;
   counts: {
     assets_shown: number;
     hazards_shown: number;
+    critical_customers?: number;
     vegetation_lines: number;
     outage_lines: number;
     risk_extrusions: number;
+    inspection_stale?: number;
     postgis_impact_assets?: number;
     postgis_hazard_polygons?: number;
   };
@@ -121,6 +136,7 @@ export interface MapBundle {
   vegetation_lines?: VegetationLine[];
   outage_lines?: OutageLine[];
   risk_extrusions?: RiskExtrusion[];
+  inspection_stale_assets?: InspectionStaleAsset[];
   hazard_impact_assets?: HazardImpactAsset[];
   hazard_polygons?: HazardPolygon[];
   scenario_summary?: ScenarioSummary;

@@ -15,14 +15,22 @@ import {
 import { api } from '../lib/api';
 import type { AgentResponse, AgentEvidence } from '../types';
 import { useAppState } from '../lib/AppState';
+import { MarkdownBody } from '../components/MarkdownBody';
 
+// Demo prompts hand-picked to exercise the real Supervisor MAS:
+// every prompt produces a grounded response from at least one of the
+// two sub-agents (network_analytics → Genie space on energyq_gold;
+// document_intelligence → Knowledge Assistant over the asset_docs
+// volume). The feeder / asset / region IDs are real values that exist
+// in Unity Catalog so the supervisor's SQL + document retrieval both
+// resolve to non-empty rows.
 const SUGGESTIONS = [
-  'Show me the top 20 assets that should be remediated before storm season.',
-  'Which feeders have the highest combination of vegetation exposure and outage history?',
-  'Create a work package for the Mackay high-risk cluster and avoid duplicate planned works.',
-  'Explain why this selected asset is high risk using inspection documents.',
-  'What is the customer impact if we defer this work by six months?',
-  'Prepare a regional manager briefing for the selected risk zone.',
+  'Why is feeder FDR-MKY-0062 high risk and what should we do before storm season?',
+  'Rank regions by total high and critical risk assets, and tell me which to prioritise.',
+  'Show me feeders with repeated vegetation-related outages in the last 12 months.',
+  'What does the latest inspection report say about asset AST-TSV-POL-003412?',
+  'Are there compliance standards for vegetation clearance in REG-TSV?',
+  'Create a work package outline for the highest-risk cluster on feeder FDR-TSV-0066.',
 ];
 
 const EVIDENCE_ICON: Record<AgentEvidence['evidence_type'], React.ReactNode> = {
@@ -109,9 +117,9 @@ export function AIInvestigationPage() {
   };
 
   return (
-    <div className="h-full grid grid-cols-[1fr_22rem]">
-      <div className="flex flex-col h-full">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
+    <div className="h-full grid grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="flex flex-col h-full min-w-0">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-8 py-6 space-y-5 min-w-0">
           {conversations.length === 0 && (
             <Welcome onSuggestion={submit} />
           )}
@@ -168,9 +176,14 @@ function Welcome({ onSuggestion }: { onSuggestion: (s: string) => void }) {
       </div>
       <h2 className="mt-4 text-2xl font-semibold tracking-tight">Grid Operations Advisor</h2>
       <p className="text-sm text-text-secondary mt-2 max-w-xl mx-auto leading-relaxed">
-        Multi-agent system grounded in Delta tables, Unity Catalog volume documents, Genie analytics, and policy
-        references. Every answer includes evidence citations and a draft work plan you can convert into a Lakebase-backed
-        work package.
+        Supervisor Multi-Agent System (Agent Bricks) routing between the{' '}
+        <span className="font-mono text-text-primary">network_analytics</span> Genie agent on
+        {' '}<span className="font-mono text-text-primary">energyq_gold</span> /{' '}
+        <span className="font-mono text-text-primary">energyq_silver</span> Delta tables and the{' '}
+        <span className="font-mono text-text-primary">document_intelligence</span> Knowledge
+        Assistant over the <span className="font-mono text-text-primary">asset_docs</span> UC
+        volume. Every answer cites the underlying SQL + documents, and can be one-click
+        converted into a Lakebase-backed work package.
       </p>
       <div className="grid grid-cols-2 gap-2 mt-6 text-left">
         {SUGGESTIONS.slice(0, 4).map((s) => (
@@ -197,7 +210,7 @@ function ConversationCard({
   creatingPackage: boolean;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 min-w-0">
       <div className="ml-auto max-w-xl panel-soft px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm w-fit">
         <span className="text-text-primary">{c.prompt}</span>
       </div>
@@ -211,23 +224,21 @@ function ConversationCard({
         <div className="panel p-4 text-sm text-critical-red max-w-3xl">{c.error}</div>
       )}
       {c.response && (
-        <div className="panel p-5 max-w-3xl space-y-4">
+        <div className="panel p-5 max-w-3xl min-w-0 space-y-4">
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <h3 className="text-lg font-semibold tracking-tight leading-snug">
                 {c.response.headline}
               </h3>
               <div className="text-[11px] text-muted mt-1 font-mono">{c.response.recommendation_id}</div>
             </div>
-            <span className="pill pill-medium">
+            <span className="pill pill-medium shrink-0">
               <Sparkles className="w-3 h-3" />
               confidence {Math.round(c.response.confidence * 100)}%
             </span>
           </div>
 
-          <pre className="text-[13px] leading-relaxed text-text-secondary whitespace-pre-wrap font-sans">
-            {c.response.body}
-          </pre>
+          <MarkdownBody source={c.response.body} />
 
           <div>
             <h4 className="text-[11px] uppercase tracking-wider text-muted mb-2">Next steps</h4>
@@ -304,9 +315,9 @@ function SidePanel({ last }: { last?: AgentResponse }) {
       ))}
       {last && (
         <div className="text-[11px] text-muted leading-relaxed pt-3 border-t border-border/30">
-          Trace shape mirrors a real Agent Bricks MAS response. Replace with{' '}
-          <span className="font-mono text-text-primary">AGENTBRICKS_SUPERVISOR_ENDPOINT</span>{' '}
-          to call the real supervisor.
+          Live trace from the Agent Bricks supervisor endpoint{' '}
+          <span className="font-mono text-text-primary">gridlens-supervisor</span>. Each row
+          is one tool call the supervisor made to a sub-agent.
         </div>
       )}
     </div>
@@ -322,3 +333,4 @@ function collectAssetEvidence(evidence: AgentEvidence[]): string[] {
   }
   return Array.from(ids);
 }
+

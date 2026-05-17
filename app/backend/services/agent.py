@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import uuid
 from typing import Any, Optional
 
@@ -210,6 +211,11 @@ class GridOperationsAdvisor:
                 citations.extend(c for c in arr if isinstance(c, dict))
 
         answer = "\n\n".join(p.strip() for p in answer_parts if p).strip()
+        # Strip the supervisor's internal routing tags (e.g. <name>network_analytics</name>)
+        # which are routing markers, not user-facing content.
+        answer = re.sub(r"<\s*name\s*>[^<]*<\s*/\s*name\s*>", "", answer)
+        # Collapse runs of blank lines created by tag stripping.
+        answer = re.sub(r"\n{3,}", "\n\n", answer).strip()
         if not answer:
             answer = "Supervisor returned no narrative; see structured evidence."
 
@@ -219,6 +225,24 @@ class GridOperationsAdvisor:
             ev = _citation_to_evidence(c, self.docs)
             if ev:
                 evidence.append(ev)
+
+        # Mine the supervisor narrative for inline citations the LLM
+        # wrote in prose (DOC-IDs, AST-IDs, FDR-IDs, REG-IDs, anzgt_may
+        # table references). This lets the evidence panel surface
+        # citations that arrived as text rather than as structured
+        # annotations.
+        evidence.extend(_mine_inline_citations(answer, self.docs))
+
+        # Dedupe by source_ref while preserving order.
+        seen_refs: set[str] = set()
+        deduped: list[dict] = []
+        for e in evidence:
+            ref = e.get("source_ref") or e.get("source_title") or ""
+            if ref in seen_refs:
+                continue
+            seen_refs.add(ref)
+            deduped.append(e)
+        evidence = deduped
 
         # Always anchor on at least one delta_table evidence so the UI
         # has a SQL-shaped reference. Prefer the regional summary.
@@ -234,13 +258,20 @@ class GridOperationsAdvisor:
 
         # Map selection evidence (always trivially true)
         if focus.get("feeder_id") or focus.get("region_id"):
+            region_id = focus.get("region_id") or ""
+            region_name = self.ds.regions.get(region_id, {}).get("region_name", region_id or "(no region)")
+            label_bits = []
+            if focus.get("region_id"):
+                label_bits.append(f"region={region_name}")
+            if focus.get("feeder_id"):
+                label_bits.append(f"feeder={focus['feeder_id']}")
+            if focus.get("asset_id"):
+                label_bits.append(f"asset={focus['asset_id']}")
             evidence.append({
                 "evidence_type": "map_selection",
                 "source_ref": f"feeder:{focus.get('feeder_id')}" if focus.get("feeder_id") else f"region:{focus.get('region_id')}",
                 "source_title": "Map selection",
-                "excerpt": ", ".join(
-                    f"{k}={v}" for k, v in focus.items() if v and k != "selected_asset_ids"
-                ),
+                "excerpt": "; ".join(label_bits) or "no selection",
                 "confidence": 0.95,
             })
 
@@ -829,6 +860,75 @@ def _citation_to_evidence(c: dict, docs_service: DocumentSearchService) -> Optio
             "confidence": float(c.get("score") or 0.70),
         }
     return None
+
+
+_DOC_RE = re.compile(r"\bDOC-\d{4,}\b")
+_AST_RE = re.compile(r"\bAST-[A-Z]+-[A-Z]+-\d+\b")
+_FDR_RE = re.compile(r"\bFDR-[A-Z]+-\d+\b")
+_REG_RE = re.compile(r"\bREG-[A-Z]+\b")
+_TBL_RE = re.compile(r"\banzgt_may\.energyq_(?:silver|gold|bronze)\.[a-z_]+\b")
+
+
+def _mine_inline_citations(answer: str, docs_service: DocumentSearchService) -> list[dict]:
+    """Pull entity references out of the supervisor narrative.
+
+    The supervisor often writes citations inline (e.g. "see DOC-000703",
+    "AST-MKY-POL-003185", "anzgt_may.energyq_gold.gold_feeder_risk_summary")
+    rather than emitting them as structured annotations. This mines those
+    references and shapes them into the same Evidence dict shape the UI
+    already renders.
+    """
+    if not answer:
+        return []
+    out: list[dict] = []
+
+    # Documents
+    for doc_id in list(dict.fromkeys(_DOC_RE.findall(answer))):
+        full = docs_service.read_full(doc_id)
+        title = (full.get("title") or doc_id) if full else doc_id
+        excerpt = ""
+        if full:
+            excerpt = " ".join(
+                line.strip() for line in (full.get("content") or "").splitlines()
+                if line.strip() and not line.startswith("#")
+            )[:220]
+        out.append({
+            "evidence_type": "document",
+            "source_ref": full.get("volume_path") if full else f"document:{doc_id}",
+            "source_title": f"{title} ({doc_id})" if full else doc_id,
+            "excerpt": excerpt or "Cited inline by the Supervisor MAS.",
+            "confidence": 0.84,
+        })
+
+    # Delta tables
+    for tbl in list(dict.fromkeys(_TBL_RE.findall(answer))):
+        out.append({
+            "evidence_type": "delta_table",
+            "source_ref": tbl,
+            "source_title": tbl.split(".")[-1].replace("_", " ").title(),
+            "excerpt": "Referenced by network_analytics agent.",
+            "confidence": 0.86,
+        })
+
+    # Assets, feeders, regions — kept as compact "policy"-style evidence so
+    # the UI shows them but they don't overwhelm the documents section.
+    refs: list[tuple[str, str]] = []
+    for aid in list(dict.fromkeys(_AST_RE.findall(answer)))[:6]:
+        refs.append(("asset", aid))
+    for fid in list(dict.fromkeys(_FDR_RE.findall(answer)))[:4]:
+        refs.append(("feeder", fid))
+    for rid in list(dict.fromkeys(_REG_RE.findall(answer)))[:5]:
+        refs.append(("region", rid))
+    for kind, val in refs:
+        out.append({
+            "evidence_type": "map_selection",
+            "source_ref": f"{kind}:{val}",
+            "source_title": f"{kind.title()} {val}",
+            "excerpt": "Referenced inline by the supervisor.",
+            "confidence": 0.80,
+        })
+
+    return out
 
 
 def _extract_next_steps(answer: str) -> list[str]:

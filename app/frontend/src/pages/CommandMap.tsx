@@ -9,17 +9,29 @@ import {
   Truck,
   Activity,
   ChevronRight,
+  ChevronUp,
   Search,
   Loader2,
   Sparkles,
   PanelRightClose,
   PanelRightOpen,
+  Info,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MapView } from '../components/MapView';
+import type { MapStyleId } from '../components/MapboxMapView';
 import { useAppState, type LayerId } from '../lib/AppState';
 import { api } from '../lib/api';
 import type { MapBundle, ScenarioId } from '../types';
+
+const MAP_STYLE_OPTIONS: { id: MapStyleId; label: string }[] = [
+  { id: 'satellite_streets', label: 'Satellite + roads' },
+  { id: 'satellite', label: 'Satellite' },
+  { id: 'streets', label: 'Streets' },
+  { id: 'outdoors', label: 'Outdoors' },
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' },
+];
 
 const SCENARIOS: { id: ScenarioId; label: string; description: string }[] = [
   { id: 'normal', label: 'Normal operations', description: 'Baseline assets, hazards, depots.' },
@@ -59,11 +71,22 @@ export function CommandMapPage() {
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem('gridlens.rightCollapsed') === '1';
   });
+  const [mapStyleId, setMapStyleId] = useState<MapStyleId>(() => {
+    if (typeof window === 'undefined') return 'satellite_streets';
+    const saved = window.localStorage.getItem('gridlens.mapStyle');
+    const valid = MAP_STYLE_OPTIONS.some((o) => o.id === saved);
+    return valid ? (saved as MapStyleId) : 'satellite_streets';
+  });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem('gridlens.rightCollapsed', rightCollapsed ? '1' : '0');
   }, [rightCollapsed]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('gridlens.mapStyle', mapStyleId);
+  }, [mapStyleId]);
 
   const centerLat = useMemo(() => regions.find((r) => r.region_id === selectedRegion)?.centre_lat ?? null, [regions, selectedRegion]);
   const centerLon = useMemo(() => regions.find((r) => r.region_id === selectedRegion)?.centre_lon ?? null, [regions, selectedRegion]);
@@ -195,6 +218,7 @@ export function CommandMapPage() {
           centerLon={centerLon}
           zoom={selectedRegion ? 7.5 : undefined}
           onAssetClick={(a) => setSelectedAssetId(a.asset_id)}
+          mapStyle={mapStyleId}
         />
 
         {/* Map search overlay */}
@@ -220,6 +244,22 @@ export function CommandMapPage() {
                 Loading map bundle…
               </div>
             )}
+            <div className="panel px-2.5 py-1.5 flex items-center gap-1.5 text-xs text-muted">
+              <Layers className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Style</span>
+              <select
+                aria-label="Map style"
+                value={mapStyleId}
+                onChange={(e) => setMapStyleId(e.target.value as MapStyleId)}
+                className="bg-transparent text-text-primary text-xs outline-none cursor-pointer pr-1"
+              >
+                {MAP_STYLE_OPTIONS.map((o) => (
+                  <option key={o.id} value={o.id} className="bg-panel text-text-primary">
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button
               className="btn-secondary"
               onClick={load}
@@ -231,61 +271,7 @@ export function CommandMapPage() {
           </div>
         </div>
 
-        {/* Bottom-left scenario narrative — explains what each scenario shows.
-            Offset right of the Mapbox logo to avoid the attribution collision. */}
-        <div className="absolute bottom-3 left-28 right-4 pointer-events-none">
-          <div className="panel px-3 py-2 max-w-xl pointer-events-auto">
-            <div className="flex items-center gap-2 text-xs">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-electric-cyan animate-pulse" />
-              <span className="font-medium text-text-primary">
-                {bundle?.scenario_summary?.headline ?? SCENARIOS.find((s) => s.id === scenario)?.label}
-              </span>
-              {selectedRegion && (
-                <span className="text-muted">
-                  · <span className="text-text-secondary">{regions.find((r) => r.region_id === selectedRegion)?.region_name}</span>
-                </span>
-              )}
-            </div>
-            {bundle?.scenario_summary && (
-              <>
-                <div className="text-[11px] text-muted leading-snug mt-1">
-                  {bundle.scenario_summary.narrative}
-                </div>
-                <div className="text-[10px] text-muted/80 mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
-                  <span>{bundle.scenario_summary.counts.assets_shown.toLocaleString()} assets</span>
-                  {bundle.scenario_summary.counts.hazards_shown > 0 && (
-                    <span>{bundle.scenario_summary.counts.hazards_shown} hazards</span>
-                  )}
-                  {bundle.scenario_summary.counts.vegetation_lines > 0 && (
-                    <span className="text-emerald-400/80">
-                      {bundle.scenario_summary.counts.vegetation_lines} vegetation spans
-                    </span>
-                  )}
-                  {bundle.scenario_summary.counts.outage_lines > 0 && (
-                    <span className="text-amber-400/80">
-                      {bundle.scenario_summary.counts.outage_lines} outage feeders
-                    </span>
-                  )}
-                  {bundle.scenario_summary.counts.risk_extrusions > 0 && (
-                    <span className="text-fuchsia-400/80">
-                      {bundle.scenario_summary.counts.risk_extrusions} risk extrusions
-                    </span>
-                  )}
-                  {(bundle.scenario_summary.counts.postgis_impact_assets ?? 0) > 0 && (
-                    <span className="text-rose-400/80" title="Computed server-side via PostGIS ST_DWithin on Lakebase">
-                      {bundle.scenario_summary.counts.postgis_impact_assets} PostGIS impact assets
-                    </span>
-                  )}
-                  {(bundle.scenario_summary.counts.postgis_hazard_polygons ?? 0) > 0 && (
-                    <span className="text-violet-400/80" title="Buffered geographies from Lakebase PostGIS">
-                      {bundle.scenario_summary.counts.postgis_hazard_polygons} PostGIS hazard polygons
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        <ScenarioPill bundle={bundle} scenario={scenario} loading={loading} />
       </div>
 
       {/* Right: stats + recommendation (collapsible) */}
@@ -416,5 +402,188 @@ function Kpi({ label, value, accent }: { label: string; value: number | string; 
         {typeof value === 'number' ? value.toLocaleString() : value}
       </div>
     </div>
+  );
+}
+
+/**
+ * Compact scenario status pill. Sits in the bottom-left corner above the
+ * Mapbox logo. Defaults to a one-line chip showing scenario name + the most
+ * relevant counts; clicking expands a popover with the full narrative and
+ * every count chip (incl. PostGIS-derived ones).
+ */
+function ScenarioPill({
+  bundle,
+  scenario,
+  loading,
+}: {
+  bundle: MapBundle | null;
+  scenario: ScenarioId;
+  loading: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const summary = bundle?.scenario_summary;
+  const fallback = SCENARIOS.find((s) => s.id === scenario);
+  const headline = summary?.headline ?? fallback?.label ?? 'Scenario';
+  const accent = summary?.accent_color ?? '#18D4FF';
+  const counts = summary?.counts;
+
+  // Pick the 2 most representative count chips per scenario so the pill stays
+  // one line. The full set is in the expanded popover.
+  const primaryChips: { label: string; value: number; color?: string }[] = [];
+  if (counts) {
+    primaryChips.push({ label: 'assets', value: counts.assets_shown });
+    if (counts.hazards_shown > 0) {
+      primaryChips.push({ label: 'hazards', value: counts.hazards_shown, color: '#7C3AED' });
+    }
+    if (counts.vegetation_lines > 0) {
+      primaryChips.push({ label: 'veg spans', value: counts.vegetation_lines, color: '#2FB344' });
+    }
+    if (counts.outage_lines > 0) {
+      primaryChips.push({ label: 'outage feeders', value: counts.outage_lines, color: '#E5484D' });
+    }
+    if (counts.risk_extrusions > 0) {
+      primaryChips.push({ label: 'risk bars', value: counts.risk_extrusions, color: '#FFB020' });
+    }
+    if ((counts.inspection_stale ?? 0) > 0) {
+      primaryChips.push({
+        label: 'stale inspections',
+        value: counts.inspection_stale!,
+        color: '#FFB020',
+      });
+    }
+  }
+
+  return (
+    <div className="absolute bottom-3 left-28 pointer-events-none z-10">
+      <div className="pointer-events-auto relative">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="panel pl-2.5 pr-2 py-1.5 flex items-center gap-2 text-xs hover:bg-panel-soft/70 transition-colors"
+          aria-expanded={open}
+          aria-label="Scenario details"
+        >
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full animate-pulse"
+            style={{ backgroundColor: accent }}
+          />
+          <span className="font-medium text-text-primary whitespace-nowrap">{headline}</span>
+          {loading && (
+            <Loader2 className="w-3 h-3 animate-spin text-muted" />
+          )}
+          {!loading && primaryChips.slice(0, 4).map((c, i) => (
+            <span key={i} className="text-muted whitespace-nowrap">
+              <span className="opacity-50 mx-1">·</span>
+              <span style={c.color ? { color: c.color } : undefined}>
+                {c.value.toLocaleString()}
+              </span>{' '}
+              {c.label}
+            </span>
+          ))}
+          <ChevronUp
+            className={`w-3 h-3 text-muted transition-transform ${open ? '' : 'rotate-180'}`}
+          />
+        </button>
+        {open && summary && (
+          <div className="panel absolute bottom-full mb-2 left-0 w-80 p-3 shadow-xl shadow-black/40">
+            <div className="flex items-start gap-2 mb-2">
+              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: accent }} />
+              <div>
+                <div className="text-sm font-medium text-text-primary">{headline}</div>
+                <div className="text-[11px] text-muted leading-snug mt-0.5">
+                  {summary.narrative}
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              <Chip label="assets" value={summary.counts.assets_shown} />
+              {summary.counts.hazards_shown > 0 && (
+                <Chip label="hazards" value={summary.counts.hazards_shown} color="#7C3AED" />
+              )}
+              {(summary.counts.critical_customers ?? 0) > 0 && (
+                <Chip
+                  label="critical customers"
+                  value={summary.counts.critical_customers!}
+                  color="#FFB020"
+                />
+              )}
+              {summary.counts.vegetation_lines > 0 && (
+                <Chip
+                  label="veg spans"
+                  value={summary.counts.vegetation_lines}
+                  color="#2FB344"
+                />
+              )}
+              {summary.counts.outage_lines > 0 && (
+                <Chip
+                  label="outage feeders"
+                  value={summary.counts.outage_lines}
+                  color="#E5484D"
+                />
+              )}
+              {summary.counts.risk_extrusions > 0 && (
+                <Chip
+                  label="3D risk bars"
+                  value={summary.counts.risk_extrusions}
+                  color="#FFB020"
+                />
+              )}
+              {(summary.counts.inspection_stale ?? 0) > 0 && (
+                <Chip
+                  label="stale inspections"
+                  value={summary.counts.inspection_stale!}
+                  color="#FFB020"
+                  title="Assets with last inspection >24 months and elevated access difficulty"
+                />
+              )}
+              {(summary.counts.postgis_impact_assets ?? 0) > 0 && (
+                <Chip
+                  label="PostGIS impact"
+                  value={summary.counts.postgis_impact_assets!}
+                  color="#E5478A"
+                  title="Assets within 20km of severe hazards (PostGIS ST_DWithin on Lakebase)"
+                />
+              )}
+              {(summary.counts.postgis_hazard_polygons ?? 0) > 0 && (
+                <Chip
+                  label="PostGIS polygons"
+                  value={summary.counts.postgis_hazard_polygons!}
+                  color="#A26FF7"
+                  title="Buffered hazard geographies served by Lakebase PostGIS"
+                />
+              )}
+            </div>
+            {summary.primary_layers.length > 0 && (
+              <div className="text-[10px] text-muted/80 mt-2 leading-snug">
+                Primary layers: {summary.primary_layers.join(' · ').replace(/_/g, ' ')}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Chip({
+  label,
+  value,
+  color,
+  title,
+}: {
+  label: string;
+  value: number;
+  color?: string;
+  title?: string;
+}) {
+  return (
+    <span
+      title={title}
+      className="inline-flex items-center gap-1 text-[10px] rounded-full px-2 py-0.5 border border-border/40 bg-panel-soft/40"
+      style={color ? { color, borderColor: `${color}33` } : undefined}
+    >
+      <span className="font-medium">{value.toLocaleString()}</span>
+      <span className="opacity-70">{label}</span>
+    </span>
   );
 }

@@ -11,6 +11,7 @@ import type {
   VegetationLine,
   OutageLine,
   RiskExtrusion,
+  InspectionStaleAsset,
   HazardImpactAsset,
   HazardPolygon,
 } from '../types';
@@ -31,7 +32,16 @@ const RISK_RADIUS: Record<string, number> = {
   critical: 6,
 };
 
-const MAPBOX_STYLE = 'mapbox://styles/mapbox/dark-v11';
+export const MAPBOX_STYLES = {
+  satellite_streets: 'mapbox://styles/mapbox/satellite-streets-v12',
+  satellite: 'mapbox://styles/mapbox/satellite-v9',
+  streets: 'mapbox://styles/mapbox/streets-v12',
+  outdoors: 'mapbox://styles/mapbox/outdoors-v12',
+  light: 'mapbox://styles/mapbox/light-v11',
+  dark: 'mapbox://styles/mapbox/dark-v11',
+} as const;
+export type MapStyleId = keyof typeof MAPBOX_STYLES;
+export const DEFAULT_MAP_STYLE: MapStyleId = 'satellite_streets';
 
 export interface MapboxMapViewProps {
   bundle: MapBundle | null;
@@ -40,6 +50,7 @@ export interface MapboxMapViewProps {
   zoom?: number;
   onAssetClick?: (asset: MapAsset) => void;
   token: string;
+  mapStyle?: MapStyleId;
 }
 
 export function MapboxMapView({
@@ -49,6 +60,7 @@ export function MapboxMapView({
   zoom,
   onAssetClick,
   token,
+  mapStyle = DEFAULT_MAP_STYLE,
 }: MapboxMapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -85,7 +97,7 @@ export function MapboxMapView({
 
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: MAPBOX_STYLE,
+      style: MAPBOX_STYLES[mapStyle],
       // Centre Queensland directly. No cinematic globe → flyTo dance —
       // it was the source of "Map cannot fit within canvas" and worker
       // teardown errors when the React tree re-rendered mid-animation.
@@ -117,7 +129,12 @@ export function MapboxMapView({
       resizeObserverRef.current = ro;
     }
 
-    map.on('load', () => {
+    // Sources + layers must be (re-)added every time a style finishes loading,
+    // because `map.setStyle(...)` wipes them.  Interactions/animations stay
+    // bound to the map itself, so they survive style swaps and are wired
+    // separately in `installInteractions` below.
+    const installSourcesAndLayers = () => {
+      setSourcesReady(false);
       // Animated cyclone storm fan-out — built from hazards by hazard_type=cyclone.
       map.addSource('hazards', { type: 'geojson', data: emptyFC() });
       map.addSource('hazards-cyclone', { type: 'geojson', data: emptyFC() });
@@ -132,6 +149,7 @@ export function MapboxMapView({
       map.addSource('risk-extrusions', { type: 'geojson', data: emptyFC() });
       map.addSource('hazard-polygons', { type: 'geojson', data: emptyFC() });
       map.addSource('hazard-impact-assets', { type: 'geojson', data: emptyFC() });
+      map.addSource('inspection-stale', { type: 'geojson', data: emptyFC() });
 
       const beforeId = firstSymbolLayer(map);
 
@@ -438,13 +456,63 @@ export function MapboxMapView({
         beforeId,
       );
 
-      // 3D risk extrusions — top-N assets shown as illuminated bars at zoom 9+.
+      // Stale-inspection halos — only painted for the field_inspection_review
+      // scenario. Amber translucent ring whose radius and opacity scale with
+      // how overdue + how hard-to-access the asset is, so the worst stale
+      // inspections "ring loud" on the map.
+      map.addLayer(
+        {
+          id: 'inspection-stale-halo',
+          type: 'circle',
+          source: 'inspection-stale',
+          paint: {
+            'circle-radius': [
+              'interpolate', ['linear'], ['zoom'],
+              4, [
+                'interpolate', ['linear'], ['get', 'overdue_days'],
+                0, 4,
+                365, 8,
+                1500, 14,
+                3000, 18,
+              ],
+              10, [
+                'interpolate', ['linear'], ['get', 'overdue_days'],
+                0, 8,
+                365, 16,
+                1500, 26,
+                3000, 36,
+              ],
+            ],
+            'circle-color': [
+              'interpolate', ['linear'], ['get', 'overdue_days'],
+              0, '#D8B06A',
+              365, '#FFB020',
+              1500, '#FF8B3D',
+              3000, '#E5484D',
+            ],
+            'circle-opacity': [
+              'interpolate', ['linear'], ['get', 'access_difficulty_score'],
+              0, 0.12,
+              50, 0.22,
+              90, 0.36,
+            ],
+            'circle-stroke-color': '#FFE3A8',
+            'circle-stroke-width': 0.8,
+            'circle-stroke-opacity': 0.6,
+            'circle-blur': 0.3,
+          },
+        },
+        beforeId,
+      );
+
+      // 3D risk extrusions — top-N assets shown as illuminated bars.
+      // minzoom 5 (was 6) so they appear at the default Queensland view.
       map.addLayer(
         {
           id: 'risk-extrusions-layer',
           type: 'fill-extrusion',
           source: 'risk-extrusions',
-          minzoom: 6,
+          minzoom: 5,
           paint: {
             'fill-extrusion-color': [
               'match', ['get', 'risk_band'],
@@ -516,33 +584,44 @@ export function MapboxMapView({
       );
 
       // 3D buildings — only at high zoom, gives the SEQ metro view real
-      // depth when inspecting critical customers.
-      if (!map.getLayer('buildings-3d')) {
-        map.addLayer(
-          {
-            id: 'buildings-3d',
-            source: 'composite',
-            'source-layer': 'building',
-            filter: ['==', 'extrude', 'true'],
-            type: 'fill-extrusion',
-            minzoom: 13,
-            paint: {
-              'fill-extrusion-color': '#14324A',
-              'fill-extrusion-height': [
-                'interpolate', ['linear'], ['zoom'],
-                13, 0,
-                14, ['get', 'height'],
-              ],
-              'fill-extrusion-base': [
-                'interpolate', ['linear'], ['zoom'],
-                13, 0,
-                14, ['get', 'min_height'],
-              ],
-              'fill-extrusion-opacity': 0.7,
+      // depth when inspecting critical customers. Only the Mapbox vector
+      // styles ship the `composite` source with a `building` source-layer;
+      // pure satellite styles do not, so we skip it there.
+      const compositeSource = map.getSource('composite') as
+        | (mapboxgl.AnySourceImpl & { vectorLayerIds?: string[] })
+        | undefined;
+      const hasBuildings = !!compositeSource?.vectorLayerIds?.includes('building');
+      if (hasBuildings && !map.getLayer('buildings-3d')) {
+        try {
+          map.addLayer(
+            {
+              id: 'buildings-3d',
+              source: 'composite',
+              'source-layer': 'building',
+              filter: ['==', 'extrude', 'true'],
+              type: 'fill-extrusion',
+              minzoom: 13,
+              paint: {
+                'fill-extrusion-color': '#14324A',
+                'fill-extrusion-height': [
+                  'interpolate', ['linear'], ['zoom'],
+                  13, 0,
+                  14, ['get', 'height'],
+                ],
+                'fill-extrusion-base': [
+                  'interpolate', ['linear'], ['zoom'],
+                  13, 0,
+                  14, ['get', 'min_height'],
+                ],
+                'fill-extrusion-opacity': 0.7,
+              },
             },
-          },
-          beforeId,
-        );
+            beforeId,
+          );
+        } catch (e) {
+          // Style doesn't expose buildings — ignore silently.
+          console.warn('buildings-3d skipped:', e);
+        }
       }
 
       // Selected asset emphasis ring + outer pulse
@@ -569,6 +648,18 @@ export function MapboxMapView({
         },
       });
 
+      // Signal to the bundle / selected-asset effects that every source +
+      // layer is now present, so it's safe to call `getSource('assets')`,
+      // `setData(...)`, `setLayoutProperty(...)`, etc.  This fires both on
+      // initial load AND after every `setStyle(...)` so the data is re-pushed.
+      setSourcesReady(true);
+    };
+
+    // Interactions and animation loops are bound once and persist across
+    // style swaps. Popups, mouse handlers, and rAF tickers attach to the map
+    // instance itself, not to specific style layers, so they survive
+    // `setStyle()` cleanly.
+    const installInteractions = () => {
       // ---- popups & interactions
       const popup = new mapboxgl.Popup({
         closeButton: false,
@@ -681,12 +772,14 @@ export function MapboxMapView({
         cycloneAnimRef.current = requestAnimationFrame(tick);
       };
       startCyclone();
+    };
 
-      // Signal to the bundle / selected-asset effects that every source +
-      // layer is now present, so it's safe to call `getSource('assets')`,
-      // `setData(...)`, `setLayoutProperty(...)`, etc.
-      setSourcesReady(true);
-    });
+    // `style.load` fires on the initial style download AND after every
+    // `setStyle()`. We re-add sources + layers there so a style swap can
+    // never leave the map blank.  `load` only fires once on the very first
+    // style load — perfect for one-shot interaction wiring.
+    map.on('style.load', installSourcesAndLayers);
+    map.once('load', installInteractions);
 
     return () => {
       if (pulseAnimRef.current) cancelAnimationFrame(pulseAnimRef.current);
@@ -700,8 +793,27 @@ export function MapboxMapView({
     };
     // token is a build-time constant; nav and onAssetClick are accessed via
     // refs above so this effect intentionally constructs the map exactly once.
+    // `mapStyle` is intentionally not a dependency — style changes are handled
+    // by the dedicated effect below using `map.setStyle()`, which preserves
+    // the map instance, camera, and bound interactions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // ---------------- style switch ----------------
+  // Swap basemap on demand. `setStyle` wipes all custom sources/layers, but
+  // `installSourcesAndLayers` is bound to `style.load`, so they're added back
+  // automatically. We flip `sourcesReady` false here so the bundle effect
+  // won't try to call `setData` on a source that no longer exists during the
+  // brief swap window.
+  const currentStyleRef = useRef<MapStyleId>(mapStyle);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (currentStyleRef.current === mapStyle) return;
+    currentStyleRef.current = mapStyle;
+    setSourcesReady(false);
+    map.setStyle(MAPBOX_STYLES[mapStyle]);
+  }, [mapStyle]);
 
   // ---------------- bundle ----------------
   useEffect(() => {
@@ -746,6 +858,9 @@ export function MapboxMapView({
     (map.getSource('hazard-impact-assets') as mapboxgl.GeoJSONSource | undefined)?.setData(
       hazardImpactToFC(bundle.hazard_impact_assets ?? []),
     );
+    (map.getSource('inspection-stale') as mapboxgl.GeoJSONSource | undefined)?.setData(
+      inspectionStaleToFC(bundle.inspection_stale_assets ?? []),
+    );
   }, [bundle, sourcesReady]);
 
   // ---------------- layer toggles ----------------
@@ -773,17 +888,52 @@ export function MapboxMapView({
     set('critical-customers-layer', layers.critical_customers && inScenario('critical_customers'));
     set('depots-layer', layers.depots && inScenario('depots'));
     set('mobile-gen-layer', layers.mobile_gen && inScenario('mobile_gen'));
-    // Scenario-only layers: visible only when in the scenario's primary set
-    // (vegetation_lines, outage_lines, risk_extrusions). They have no sidebar
-    // toggle yet — the scenario itself controls them.
+    // Scenario-only layers: visible only when in the scenario's primary set.
+    // They have no sidebar toggle — the scenario itself controls them.
     set('vegetation-lines-layer', inScenario('vegetation_lines'));
     set('outage-lines-layer', inScenario('outage_lines'));
     set('outage-lines-glow', inScenario('outage_lines'));
     set('risk-extrusions-layer', inScenario('risk_extrusions'));
+    set('inspection-stale-halo', inScenario('inspection_stale'));
     // PostGIS impact-asset halo is visible whenever the scenario uses hazards
     // (storm/normal/vegetation). It piggybacks on the hazards layer toggle so
     // turning hazards off also hides the impact ring.
     set('hazard-impact-halo', layers.hazards && inScenario('hazards'));
+
+    // When the scenario's headline visualisation is a non-asset layer
+    // (vegetation lines, outage glow lines, 3D extrusions, or stale halos),
+    // dim the dense asset dot cloud so the headline layer dominates the eye.
+    // We do this with `circle-opacity` rather than hiding assets entirely so
+    // users can still see context.
+    if (map.getLayer('assets-layer')) {
+      const dimming = bundle?.scenario_summary?.scenario_id;
+      const isLineDominant =
+        dimming === 'vegetation_program' ||
+        dimming === 'reliability_improvement' ||
+        dimming === 'field_inspection_review';
+      const isExtrusionDominant = dimming === 'capex_prioritisation';
+      let opacityExpr: mapboxgl.ExpressionSpecification | number;
+      if (isLineDominant) {
+        opacityExpr = [
+          'interpolate', ['linear'], ['zoom'],
+          4, 0.35,
+          9, 0.55,
+        ];
+      } else if (isExtrusionDominant) {
+        opacityExpr = [
+          'interpolate', ['linear'], ['zoom'],
+          4, 0.55,
+          9, 0.75,
+        ];
+      } else {
+        opacityExpr = [
+          'interpolate', ['linear'], ['zoom'],
+          4, 0.7,
+          9, 0.92,
+        ];
+      }
+      map.setPaintProperty('assets-layer', 'circle-opacity', opacityExpr);
+    }
   }, [layers, sourcesReady, bundle]);
 
   // ---------------- center / zoom ----------------
@@ -1007,6 +1157,23 @@ function hazardImpactToFC(items: HazardImpactAsset[]): GeoJSON.FeatureCollection
         risk_score: a.risk_score,
         distance_m: a.distance_m,
         hazard_severity: a.hazard_severity,
+      },
+    })),
+  };
+}
+
+function inspectionStaleToFC(items: InspectionStaleAsset[]): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: items.map((a) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [a.lon, a.lat] },
+      properties: {
+        asset_id: a.asset_id,
+        feeder_id: a.feeder_id,
+        risk_band: a.risk_band,
+        overdue_days: a.overdue_days,
+        access_difficulty_score: a.access_difficulty_score,
       },
     })),
   };

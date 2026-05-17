@@ -1,6 +1,6 @@
 import type { MapAsset, MapBundle } from '../types';
 import { AlertTriangle } from 'lucide-react';
-import { MapboxMapView } from './MapboxMapView';
+import { MapboxMapView, type MapStyleId } from './MapboxMapView';
 
 export interface MapViewProps {
   bundle: MapBundle | null;
@@ -8,6 +8,7 @@ export interface MapViewProps {
   centerLon?: number | null;
   zoom?: number;
   onAssetClick?: (asset: MapAsset) => void;
+  mapStyle?: MapStyleId;
 }
 
 const MAPBOX_TOKEN =

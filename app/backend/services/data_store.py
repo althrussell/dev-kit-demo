@@ -471,52 +471,58 @@ class DataStore:
     # are returned, and which preset the frontend should apply.
     SCENARIO_CONFIG: dict = {
         "normal": {
-            "hazard_types": None,  # all
+            "hazard_types": None,
             "asset_filter": None,
             "headline": "Normal operations",
-            "narrative": "Baseline view across all hazards and asset health bands.",
+            "narrative": "Full network baseline. All asset health bands, all active hazards, all depots and critical customers.",
             "primary_layers": ["assets", "hazards", "critical_customers", "depots"],
             "extras": [],
+            "accent": "#18D4FF",
         },
         "storm_readiness": {
             "hazard_types": {"cyclone", "storm", "flood"},
             "asset_filter": "storm_exposed",
             "headline": "Storm-season readiness",
-            "narrative": "Cyclone / storm / flood hazard rings overlay on assets with high coastal exposure. Mobile generation and critical customers prioritised.",
+            "narrative": "Coastal assets exposed to cyclone, storm and flood corridors. Mobile generation pre-positioned at nearest depots.",
             "primary_layers": ["assets", "hazards", "critical_customers", "mobile_gen"],
             "extras": ["risk_extrusions"],
+            "accent": "#7C3AED",
         },
         "vegetation_program": {
             "hazard_types": {"bushfire", "heat"},
             "asset_filter": "vegetation_exposed",
             "headline": "Vegetation treatment program",
-            "narrative": "Backlog of vegetation spans (treatment overdue) rendered as risk-graded lines. Bushfire hazards retained; storm/flood hidden.",
+            "narrative": "Treatment-overdue spans rendered as risk-graded lines. Bushfire and heat zones retained as context.",
             "primary_layers": ["vegetation_lines", "assets", "hazards"],
             "extras": ["vegetation_lines"],
+            "accent": "#2FB344",
         },
         "reliability_improvement": {
-            "hazard_types": set(),  # no hazards
+            "hazard_types": set(),
             "asset_filter": "reliability",
             "headline": "Reliability improvement",
-            "narrative": "Top outage-prone feeders highlighted as connecting lines. Outage hot-spots dominate the view.",
+            "narrative": "Top outage-prone feeders drawn as glowing lines from substation to load centroid. Hazards hidden for clarity.",
             "primary_layers": ["outage_lines", "assets", "critical_customers"],
             "extras": ["outage_lines"],
+            "accent": "#E5484D",
         },
         "capex_prioritisation": {
             "hazard_types": set(),
             "asset_filter": "capex",
             "headline": "Capex prioritisation",
-            "narrative": "Ageing assets (install_year < 1985) and high-criticality replacement candidates raised as 3D risk extrusions.",
+            "narrative": "Pre-1985 plant and high-criticality replacement candidates raised as 3D risk bars. Zoom 9+ for full extrusion height.",
             "primary_layers": ["risk_extrusions", "assets", "critical_customers"],
             "extras": ["risk_extrusions"],
+            "accent": "#FFB020",
         },
         "field_inspection_review": {
             "hazard_types": set(),
             "asset_filter": "inspection",
             "headline": "Field inspection review",
-            "narrative": "Assets whose last inspection is overdue, weighted by access difficulty.",
-            "primary_layers": ["assets", "depots"],
-            "extras": [],
+            "narrative": "Assets with last inspection >24 months and elevated access difficulty rendered as amber halos. Depots shown for crew dispatch.",
+            "primary_layers": ["inspection_stale", "assets", "depots"],
+            "extras": ["inspection_stale"],
+            "accent": "#D8B06A",
         },
     }
 
@@ -666,6 +672,58 @@ class DataStore:
         feeder_summaries.sort(key=lambda r: -r["outage_count"])
         return feeder_summaries[:limit]
 
+    def inspection_stale_assets(
+        self,
+        candidates: list[dict],
+        limit: int = 400,
+    ) -> list[dict]:
+        """Return stale-inspection assets enriched with overdue days and
+        access score, for the amber halo layer.
+
+        Operates on the already-filtered candidate list (which has been run
+        through `_apply_scenario_asset_filter('inspection')`), so we only
+        need to enrich and sort.
+        """
+        last_inspection: dict[str, str] = {}
+        for ins in self.inspections:
+            aid = ins.get("asset_id")
+            d = ins.get("inspection_date")
+            if not aid or not d:
+                continue
+            prev = last_inspection.get(aid)
+            if prev is None or d > prev:
+                last_inspection[aid] = d
+
+        today = datetime.utcnow()
+        out: list[dict] = []
+        for a in candidates:
+            src = self.assets.get(a["asset_id"], {})
+            d = last_inspection.get(a["asset_id"])
+            overdue_days = 0
+            if d:
+                try:
+                    overdue_days = max(0, (today - datetime.fromisoformat(d)).days - 365)
+                except Exception:
+                    overdue_days = 9999
+            else:
+                overdue_days = 9999  # never inspected
+            access = _to_float(src.get("access_difficulty_score"))
+            out.append({
+                "asset_id": a["asset_id"],
+                "lat": a["lat"],
+                "lon": a["lon"],
+                "feeder_id": a["feeder_id"],
+                "region_id": a["region_id"],
+                "risk_band": a["risk_band"],
+                "overdue_days": overdue_days,
+                "last_inspection_date": d,
+                "access_difficulty_score": access,
+            })
+        # Worst-first: never inspected, then high access difficulty, then
+        # most overdue.
+        out.sort(key=lambda r: (-r["overdue_days"], -r["access_difficulty_score"]))
+        return out[:limit]
+
     def risk_extrusions(self, candidates: list[dict], limit: int = 80) -> list[dict]:
         """Top-N assets as 3D extrusion data (lat, lon, height_m).
 
@@ -729,18 +787,23 @@ class DataStore:
         mobgen = self.mobile_gen_for_region(region_id=region_id)
 
         extras: dict = {}
-        if "vegetation_lines" in cfg.get("extras", []):
-            extras["vegetation_lines"] = self.vegetation_lines(region_id=region_id, limit=600)
-        else:
-            extras["vegetation_lines"] = []
-        if "outage_lines" in cfg.get("extras", []):
-            extras["outage_lines"] = self.outage_lines(region_id=region_id, limit=40)
-        else:
-            extras["outage_lines"] = []
-        if "risk_extrusions" in cfg.get("extras", []):
-            extras["risk_extrusions"] = self.risk_extrusions(scenario_assets, limit=80)
-        else:
-            extras["risk_extrusions"] = []
+        extra_set = set(cfg.get("extras", []))
+        extras["vegetation_lines"] = (
+            self.vegetation_lines(region_id=region_id, limit=600)
+            if "vegetation_lines" in extra_set else []
+        )
+        extras["outage_lines"] = (
+            self.outage_lines(region_id=region_id, limit=40)
+            if "outage_lines" in extra_set else []
+        )
+        extras["risk_extrusions"] = (
+            self.risk_extrusions(scenario_assets, limit=80)
+            if "risk_extrusions" in extra_set else []
+        )
+        extras["inspection_stale"] = (
+            self.inspection_stale_assets(scenario_assets, limit=400)
+            if "inspection_stale" in extra_set else []
+        )
 
         # KPIs from the (potentially filtered) asset set.
         high = sum(1 for a in scenario_assets if a["risk_band"] == "high")
@@ -756,12 +819,15 @@ class DataStore:
             "headline": cfg.get("headline"),
             "narrative": cfg.get("narrative"),
             "primary_layers": cfg.get("primary_layers", []),
+            "accent_color": cfg.get("accent", "#18D4FF"),
             "counts": {
                 "assets_shown": len(scenario_assets),
                 "hazards_shown": len(hazards),
+                "critical_customers": len(critical_customers),
                 "vegetation_lines": len(extras["vegetation_lines"]),
                 "outage_lines": len(extras["outage_lines"]),
                 "risk_extrusions": len(extras["risk_extrusions"]),
+                "inspection_stale": len(extras["inspection_stale"]),
             },
         }
 
@@ -774,6 +840,7 @@ class DataStore:
             "vegetation_lines": extras["vegetation_lines"],
             "outage_lines": extras["outage_lines"],
             "risk_extrusions": extras["risk_extrusions"],
+            "inspection_stale_assets": extras["inspection_stale"],
             "scenario_summary": scenario_summary,
             "feeders_count": feeders_count,
             "high_risk_asset_count": high,

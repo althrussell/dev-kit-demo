@@ -23,12 +23,24 @@
 # Local Databricks CLI sync state
 .databricks/
 
-# Dev-only top-level dirs (data lives in UC volumes; scripts/docs/tests
-# are not used by the running app)
+# Dev-only top-level dirs (scripts/docs/tests are not used by the running app)
 docs/
 tests/
 scripts/
-data/
+
+# Data tree: the in-memory data_store reads `data/synthetic/*.csv` at startup
+# (USE_LOCAL_DATA=true), so those CSVs MUST ship. Everything else under data/
+# stays out of the deploy bundle.
+#   - data/synthetic/_road_cache/  ~50 MB of OSM road geometry, only used by
+#     the offline snap-to-roads script.
+#   - data/documents/              served from a UC volume at runtime
+#                                  (USE_VOLUME_DOCS=true).
+#   - data/parquet/, data/raw/     scratch outputs from prep notebooks.
+data/synthetic/_road_cache/
+data/documents/
+data/parquet/
+data/raw/
+data/tmp/
 
 # Python build / runtime artefacts
 .venv/

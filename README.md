@@ -18,7 +18,7 @@ GridLens Queensland combines:
 | Document intelligence | **Vector Search / RAG** with local keyword fallback |
 | Natural-language analytics | **Genie Space** over curated gold tables with grounded fallback |
 | Operational recommendations | **Agent Bricks Multi-Agent System** with local grounded simulation |
-| Map | MapLibre GL JS + CartoDB dark tiles (no Mapbox token required) |
+| Map | **Mapbox GL JS** (globe projection, terrain, hillshading, sky/atmosphere, heatmap, animated cyclone rings, 3D buildings) when `VITE_MAPBOX_TOKEN` is set, with MapLibre + CartoDB fallback |
 
 Every AI answer is grounded in Delta tables, UC Volume documents, Genie answers,
 or policy excerpts — there is no ungrounded chatbot anywhere in the app.
@@ -125,8 +125,19 @@ uvicorn app.backend.main:app --port 8765 --reload
 ```bash
 cd app/frontend
 npm install
+
+# Cinematic Mapbox experience (recommended for live demos):
+# Drop your Mapbox public token (pk.*) into app/frontend/.env.local
+echo 'VITE_MAPBOX_TOKEN=pk.your-token-here' > .env.local
+
 npm run dev
 ```
+
+If `VITE_MAPBOX_TOKEN` is omitted the app gracefully falls back to MapLibre +
+CartoDB tiles. With Mapbox you get globe projection on the opening view, a
+cinematic fly-to Queensland with terrain + hillshading, animated cyclone
+storm rings, a high-risk asset heatmap, and 3D building footprints in SEQ
+metro.
 
 Open <http://localhost:5173/command-map>.
 

@@ -28,7 +28,15 @@
 ### Frontend (`app/frontend`)
 
 - React 18 + TypeScript + Vite.
-- MapLibre GL JS with CartoDB dark raster tiles (no Mapbox token required).
+- **Mapping engine selected at build time on `VITE_MAPBOX_TOKEN`.**
+  - With Mapbox token: `mapbox-gl` with globe projection, atmospheric fog,
+    `mapbox-dem` terrain at exaggeration 1.4, hillshade, animated cyclone
+    storm rings, high-risk asset heatmap (fades into circle markers as you
+    zoom in), 3D building extrusions in metro at zoom > 13, and cinematic
+    `flyTo` transitions.
+  - Without token: `maplibre-gl` with CartoDB dark raster tiles — same layer
+    semantics, no terrain or globe.
+- Code-split: only the chosen mapping bundle ships to the browser.
 - Tailwind CSS with a custom enterprise dark palette and shadcn-style
   primitives.
 - Recharts for analytics.

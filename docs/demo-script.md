@@ -10,11 +10,19 @@
 source .venv/bin/activate
 uvicorn app.backend.main:app --port 8765
 
-# In another
+# In another — drop your Mapbox public token first for the cinematic experience
+echo 'VITE_MAPBOX_TOKEN=pk.your-token' > app/frontend/.env.local
 cd app/frontend && npm run dev
 ```
 
 Open <http://localhost:5173/command-map>.
+
+> With the Mapbox token in place the app opens on a globe view of Australia
+> with atmosphere and stars, then flies down to Queensland with terrain and
+> hillshading. Cyclone hazard zones pulse, high-risk asset heatmaps glow
+> under the circle markers, and SEQ metro buildings extrude in 3D when you
+> zoom past 13. Without the token the app falls back to flat MapLibre +
+> CartoDB and the rest of the demo works identically.
 
 Pre-load:
 - Region selector: **Mackay / Whitsunday Corridor** (`REG-MKY`)
@@ -25,6 +33,9 @@ Pre-load:
 
 ## Opening (60s)
 
+The app loads on a globe view of Australia, then cinematically flies down to
+Queensland over ~3 seconds. Wait for the flight to finish before speaking.
+
 > "GridLens Queensland shows how Databricks can become the governed
 > intelligence layer above GIS, EAM, outage, field inspection, vegetation and
 > document systems. The user we have in mind today is the Mackay regional
@@ -34,6 +45,8 @@ Highlight what's on screen:
 - Live demo backend
 - Unity Catalog: `anzgt_may`
 - Lakebase: `gridlens.*`
+- The heatmap glow over Mackay/Townsville is the high-risk asset density;
+  the purple pulsing rings on the coast are cyclone hazard zones.
 
 ## Act 1 — Command Map (2 min)
 

@@ -267,11 +267,9 @@ CREATE OR REPLACE TABLE scenario_runs (
 ) USING DELTA;
 
 -- =====================================================================
--- Gold views
+-- Gold views (fully qualified — safe to run from any current schema)
 -- =====================================================================
-USE SCHEMA energyq_gold;
-
-CREATE OR REPLACE VIEW gold_asset_360 AS
+CREATE OR REPLACE VIEW anzgt_may.energyq_gold.gold_asset_360 AS
 WITH defect_summary AS (
   SELECT
     asset_id,
@@ -385,7 +383,44 @@ LEFT JOIN outage_summary o ON o.asset_id = a.asset_id
 LEFT JOIN veg_summary v ON v.asset_id = a.asset_id
 LEFT JOIN work_summary w ON w.asset_id = a.asset_id;
 
-CREATE OR REPLACE VIEW gold_feeder_risk_summary AS
+CREATE OR REPLACE VIEW anzgt_may.energyq_gold.gold_feeder_risk_summary AS
+WITH feeder_risk AS (
+  SELECT
+    a.feeder_id,
+    COUNT(a.asset_id) AS asset_count,
+    SUM(CASE WHEN h.risk_band = 'high' THEN 1 ELSE 0 END) AS high_risk_assets,
+    SUM(CASE WHEN h.risk_band = 'critical' THEN 1 ELSE 0 END) AS critical_risk_assets,
+    AVG(h.risk_score) AS avg_risk_score
+  FROM anzgt_may.energyq_silver.assets a
+  LEFT JOIN anzgt_may.energyq_silver.asset_health_scores h ON h.asset_id = a.asset_id
+  GROUP BY a.feeder_id
+),
+outage_12m AS (
+  SELECT feeder_id,
+         COUNT(*) AS outage_count_12m,
+         SUM(saidi_minutes) AS saidi_minutes_12m,
+         SUM(saifi_count) AS saifi_count_12m
+  FROM anzgt_may.energyq_silver.outage_events
+  WHERE outage_start >= current_date() - INTERVAL 12 MONTHS
+  GROUP BY feeder_id
+),
+outage_36m AS (
+  SELECT feeder_id, COUNT(*) AS outage_count_36m
+  FROM anzgt_may.energyq_silver.outage_events
+  WHERE outage_start >= current_date() - INTERVAL 36 MONTHS
+  GROUP BY feeder_id
+),
+veg AS (
+  SELECT feeder_id, AVG(vegetation_risk_score) AS avg_vegetation_risk_score
+  FROM anzgt_may.energyq_silver.vegetation_spans
+  GROUP BY feeder_id
+),
+planned AS (
+  SELECT feeder_id, COUNT(*) AS planned_work_count
+  FROM anzgt_may.energyq_silver.work_orders
+  WHERE status IN ('approved','scheduled','in_progress')
+  GROUP BY feeder_id
+)
 SELECT
   f.feeder_id,
   f.feeder_name,
@@ -396,118 +431,213 @@ SELECT
   f.feeder_length_km,
   f.customer_count,
   f.critical_customer_count,
-  COUNT(a.asset_id) AS asset_count,
-  SUM(CASE WHEN h.risk_band = 'high' THEN 1 ELSE 0 END) AS high_risk_assets,
-  SUM(CASE WHEN h.risk_band = 'critical' THEN 1 ELSE 0 END) AS critical_risk_assets,
-  AVG(h.risk_score) AS avg_risk_score,
-  (SELECT COUNT(*) FROM anzgt_may.energyq_silver.outage_events o
-    WHERE o.feeder_id = f.feeder_id
-      AND o.outage_start >= current_date() - INTERVAL 12 MONTHS) AS outage_count_12m,
-  (SELECT COUNT(*) FROM anzgt_may.energyq_silver.outage_events o
-    WHERE o.feeder_id = f.feeder_id
-      AND o.outage_start >= current_date() - INTERVAL 36 MONTHS) AS outage_count_36m,
-  COALESCE((SELECT AVG(vegetation_risk_score) FROM anzgt_may.energyq_silver.vegetation_spans v
-    WHERE v.feeder_id = f.feeder_id), 0) AS avg_vegetation_risk_score,
-  (SELECT SUM(saidi_minutes) FROM anzgt_may.energyq_silver.outage_events o
-    WHERE o.feeder_id = f.feeder_id
-      AND o.outage_start >= current_date() - INTERVAL 12 MONTHS) AS saidi_minutes_12m,
-  (SELECT SUM(saifi_count) FROM anzgt_may.energyq_silver.outage_events o
-    WHERE o.feeder_id = f.feeder_id
-      AND o.outage_start >= current_date() - INTERVAL 12 MONTHS) AS saifi_count_12m,
-  (SELECT COUNT(*) FROM anzgt_may.energyq_silver.work_orders w
-    WHERE w.feeder_id = f.feeder_id
-      AND w.status IN ('approved','scheduled','in_progress')) AS planned_work_count
+  COALESCE(fr.asset_count, 0) AS asset_count,
+  COALESCE(fr.high_risk_assets, 0) AS high_risk_assets,
+  COALESCE(fr.critical_risk_assets, 0) AS critical_risk_assets,
+  COALESCE(fr.avg_risk_score, 0) AS avg_risk_score,
+  COALESCE(o12.outage_count_12m, 0) AS outage_count_12m,
+  COALESCE(o36.outage_count_36m, 0) AS outage_count_36m,
+  COALESCE(v.avg_vegetation_risk_score, 0) AS avg_vegetation_risk_score,
+  COALESCE(o12.saidi_minutes_12m, 0) AS saidi_minutes_12m,
+  COALESCE(o12.saifi_count_12m, 0) AS saifi_count_12m,
+  COALESCE(p.planned_work_count, 0) AS planned_work_count
 FROM anzgt_may.energyq_silver.feeders f
 JOIN anzgt_may.energyq_silver.regions r ON f.region_id = r.region_id
-LEFT JOIN anzgt_may.energyq_silver.assets a ON a.feeder_id = f.feeder_id
-LEFT JOIN anzgt_may.energyq_silver.asset_health_scores h ON h.asset_id = a.asset_id
-GROUP BY f.feeder_id, f.feeder_name, f.region_id, r.region_name, f.substation_id,
-         f.voltage_kv, f.feeder_length_km, f.customer_count, f.critical_customer_count;
+LEFT JOIN feeder_risk fr ON fr.feeder_id = f.feeder_id
+LEFT JOIN outage_12m o12 ON o12.feeder_id = f.feeder_id
+LEFT JOIN outage_36m o36 ON o36.feeder_id = f.feeder_id
+LEFT JOIN veg v ON v.feeder_id = f.feeder_id
+LEFT JOIN planned p ON p.feeder_id = f.feeder_id;
 
-CREATE OR REPLACE VIEW gold_regional_risk_summary AS
+CREATE OR REPLACE VIEW anzgt_may.energyq_gold.gold_regional_risk_summary AS
+WITH region_assets AS (
+  SELECT
+    a.region_id,
+    COUNT(DISTINCT a.asset_id) AS total_assets,
+    SUM(CASE WHEN h.risk_band = 'high' THEN 1 ELSE 0 END) AS high_risk_assets,
+    SUM(CASE WHEN h.risk_band = 'critical' THEN 1 ELSE 0 END) AS critical_risk_assets
+  FROM anzgt_may.energyq_silver.assets a
+  LEFT JOIN anzgt_may.energyq_silver.asset_health_scores h ON h.asset_id = a.asset_id
+  GROUP BY a.region_id
+),
+feeder_outages_12m AS (
+  SELECT f.region_id, f.feeder_id, COUNT(*) AS outages
+  FROM anzgt_may.energyq_silver.feeders f
+  JOIN anzgt_may.energyq_silver.outage_events o ON o.feeder_id = f.feeder_id
+  WHERE o.outage_start >= current_date() - INTERVAL 12 MONTHS
+  GROUP BY f.region_id, f.feeder_id
+),
+repeat_outage_feeders AS (
+  SELECT region_id, COUNT(*) AS feeders_with_repeat_outages
+  FROM feeder_outages_12m
+  WHERE outages >= 3
+  GROUP BY region_id
+),
+veg_backlog AS (
+  SELECT region_id, COUNT(*) AS vegetation_backlog
+  FROM anzgt_may.energyq_silver.vegetation_spans
+  WHERE overdue_days > 30
+  GROUP BY region_id
+),
+mobgen_ready AS (
+  SELECT region_id, COUNT(*) AS mobile_gen_ready_sites
+  FROM anzgt_may.energyq_silver.mobile_generation_candidates
+  WHERE connection_ready = TRUE
+  GROUP BY region_id
+),
+crit_customers AS (
+  SELECT region_id, SUM(critical_customer_count) AS critical_customer_count_exposed
+  FROM anzgt_may.energyq_silver.feeders
+  GROUP BY region_id
+),
+planned AS (
+  SELECT region_id, COUNT(*) AS planned_work_count
+  FROM anzgt_may.energyq_silver.work_orders
+  WHERE status IN ('approved','scheduled','in_progress')
+  GROUP BY region_id
+)
 SELECT
   r.region_id,
   r.region_name,
-  COUNT(DISTINCT a.asset_id) AS total_assets,
-  SUM(CASE WHEN h.risk_band = 'high' THEN 1 ELSE 0 END) AS high_risk_assets,
-  SUM(CASE WHEN h.risk_band = 'critical' THEN 1 ELSE 0 END) AS critical_risk_assets,
-  (SELECT COUNT(*) FROM anzgt_may.energyq_silver.feeders f2
-    JOIN anzgt_may.energyq_silver.outage_events o2
-      ON f2.feeder_id = o2.feeder_id
-    WHERE f2.region_id = r.region_id
-      AND o2.outage_start >= current_date() - INTERVAL 12 MONTHS
-    GROUP BY f2.feeder_id HAVING COUNT(*) >= 3) AS feeders_with_repeat_outages,
-  (SELECT COUNT(*) FROM anzgt_may.energyq_silver.vegetation_spans v
-    WHERE v.region_id = r.region_id AND v.overdue_days > 30) AS vegetation_backlog,
-  (SELECT COUNT(*) FROM anzgt_may.energyq_silver.mobile_generation_candidates m
-    WHERE m.region_id = r.region_id AND m.connection_ready = TRUE) AS mobile_gen_ready_sites,
-  (SELECT SUM(critical_customer_count) FROM anzgt_may.energyq_silver.feeders f3
-    WHERE f3.region_id = r.region_id) AS critical_customer_count_exposed,
-  (SELECT COUNT(*) FROM anzgt_may.energyq_silver.work_orders w
-    WHERE w.region_id = r.region_id
-      AND w.status IN ('approved','scheduled','in_progress')) AS planned_work_count
+  COALESCE(ra.total_assets, 0) AS total_assets,
+  COALESCE(ra.high_risk_assets, 0) AS high_risk_assets,
+  COALESCE(ra.critical_risk_assets, 0) AS critical_risk_assets,
+  COALESCE(rof.feeders_with_repeat_outages, 0) AS feeders_with_repeat_outages,
+  COALESCE(vb.vegetation_backlog, 0) AS vegetation_backlog,
+  COALESCE(mg.mobile_gen_ready_sites, 0) AS mobile_gen_ready_sites,
+  COALESCE(cc.critical_customer_count_exposed, 0) AS critical_customer_count_exposed,
+  COALESCE(p.planned_work_count, 0) AS planned_work_count
 FROM anzgt_may.energyq_silver.regions r
-LEFT JOIN anzgt_may.energyq_silver.assets a ON a.region_id = r.region_id
-LEFT JOIN anzgt_may.energyq_silver.asset_health_scores h ON h.asset_id = a.asset_id
-GROUP BY r.region_id, r.region_name;
+LEFT JOIN region_assets ra ON ra.region_id = r.region_id
+LEFT JOIN repeat_outage_feeders rof ON rof.region_id = r.region_id
+LEFT JOIN veg_backlog vb ON vb.region_id = r.region_id
+LEFT JOIN mobgen_ready mg ON mg.region_id = r.region_id
+LEFT JOIN crit_customers cc ON cc.region_id = r.region_id
+LEFT JOIN planned p ON p.region_id = r.region_id;
 
-CREATE OR REPLACE VIEW gold_work_prioritisation AS
+CREATE OR REPLACE VIEW anzgt_may.energyq_gold.gold_work_prioritisation AS
+WITH asset_depot_dist AS (
+  SELECT
+    a.asset_id,
+    d.depot_id,
+    ROW_NUMBER() OVER (
+      PARTITION BY a.asset_id
+      ORDER BY POW(d.lat - a.lat, 2) + POW(d.lon - a.lon, 2)
+    ) AS rn
+  FROM anzgt_may.energyq_silver.assets a
+  JOIN anzgt_may.energyq_silver.depots d ON d.region_id = a.region_id
+),
+nearest_depot AS (
+  SELECT asset_id, depot_id AS suggested_depot_id
+  FROM asset_depot_dist
+  WHERE rn = 1
+),
+ranked AS (
+  SELECT
+    a.region_id,
+    f.feeder_id,
+    a.asset_id,
+    a.coastal_corrosion_score,
+    a.cyclone_exposure_score,
+    a.bushfire_exposure_score,
+    a.flood_exposure_score,
+    f.customer_count,
+    h.risk_score,
+    h.risk_band,
+    h.risk_drivers,
+    h.failure_probability_12m,
+    ROW_NUMBER() OVER (ORDER BY h.risk_score DESC) AS rn
+  FROM anzgt_may.energyq_silver.assets a
+  JOIN anzgt_may.energyq_silver.feeders f ON a.feeder_id = f.feeder_id
+  JOIN anzgt_may.energyq_silver.asset_health_scores h ON h.asset_id = a.asset_id
+  WHERE h.risk_band IN ('high','critical')
+)
 SELECT
-  CONCAT('REC-', f.feeder_id, '-', LPAD(CAST(ROW_NUMBER() OVER (ORDER BY h.risk_score DESC) AS STRING), 6, '0')) AS recommendation_id,
-  a.region_id,
-  f.feeder_id,
-  a.asset_id,
+  CONCAT('REC-', r.feeder_id, '-', LPAD(CAST(r.rn AS STRING), 6, '0')) AS recommendation_id,
+  r.region_id,
+  r.feeder_id,
+  r.asset_id,
   CASE
-    WHEN h.risk_band = 'critical' AND a.coastal_corrosion_score > 60 THEN 'crossarm_replacement'
-    WHEN h.risk_band = 'critical' AND a.cyclone_exposure_score > 60 THEN 'storm_hardening'
-    WHEN h.risk_band IN ('high','critical') AND a.bushfire_exposure_score > 60 THEN 'bushfire_pole_swap'
-    WHEN h.risk_band IN ('high','critical') AND a.flood_exposure_score > 60 THEN 'flood_mitigation'
+    WHEN r.risk_band = 'critical' AND r.coastal_corrosion_score > 60 THEN 'crossarm_replacement'
+    WHEN r.risk_band = 'critical' AND r.cyclone_exposure_score > 60 THEN 'storm_hardening'
+    WHEN r.risk_band IN ('high','critical') AND r.bushfire_exposure_score > 60 THEN 'bushfire_pole_swap'
+    WHEN r.risk_band IN ('high','critical') AND r.flood_exposure_score > 60 THEN 'flood_mitigation'
     ELSE 'asset_inspection'
   END AS opportunity_type,
-  h.risk_score AS priority_score,
-  ROUND(f.customer_count * h.failure_probability_12m, 0) AS estimated_customer_impact_reduction,
-  ROUND(GREATEST(2500, h.risk_score * 200), 2) AS estimated_cost_aud,
-  CASE WHEN h.risk_score > 60 THEN TRUE ELSE FALSE END AS work_bundle_candidate,
-  (SELECT depot_id FROM anzgt_may.energyq_silver.depots d
-    WHERE d.region_id = a.region_id
-    ORDER BY (POW(d.lat - a.lat, 2) + POW(d.lon - a.lon, 2)) ASC LIMIT 1) AS suggested_depot_id,
-  CONCAT('Asset ', a.asset_id, ' risk=', CAST(ROUND(h.risk_score, 1) AS STRING),
-         ' drivers=', h.risk_drivers) AS evidence_summary,
+  r.risk_score AS priority_score,
+  ROUND(r.customer_count * r.failure_probability_12m, 0) AS estimated_customer_impact_reduction,
+  ROUND(GREATEST(2500, r.risk_score * 200), 2) AS estimated_cost_aud,
+  CASE WHEN r.risk_score > 60 THEN TRUE ELSE FALSE END AS work_bundle_candidate,
+  nd.suggested_depot_id,
+  CONCAT('Asset ', r.asset_id, ' risk=', CAST(ROUND(r.risk_score, 1) AS STRING),
+         ' drivers=', r.risk_drivers) AS evidence_summary,
   CASE
-    WHEN h.risk_band = 'critical' THEN 'Schedule within 30 days'
-    WHEN h.risk_band = 'high' THEN 'Schedule within 90 days'
+    WHEN r.risk_band = 'critical' THEN 'Schedule within 30 days'
+    WHEN r.risk_band = 'high' THEN 'Schedule within 90 days'
     ELSE 'Plan within FY'
   END AS recommended_next_step
-FROM anzgt_may.energyq_silver.assets a
-JOIN anzgt_may.energyq_silver.feeders f ON a.feeder_id = f.feeder_id
-JOIN anzgt_may.energyq_silver.asset_health_scores h ON h.asset_id = a.asset_id
-WHERE h.risk_band IN ('high','critical');
+FROM ranked r
+LEFT JOIN nearest_depot nd ON nd.asset_id = r.asset_id;
 
-CREATE OR REPLACE VIEW gold_storm_readiness AS
+CREATE OR REPLACE VIEW anzgt_may.energyq_gold.gold_storm_readiness AS
+WITH hazard_regions AS (
+  SELECT DISTINCT region_id
+  FROM anzgt_may.energyq_silver.hazard_exposure_zones
+  WHERE hazard_type IN ('cyclone','storm','flood')
+),
+hazard_assets AS (
+  SELECT
+    a.region_id,
+    COUNT(DISTINCT a.asset_id) AS assets_in_hazard_zone,
+    SUM(CASE WHEN h.risk_band IN ('high','critical') THEN 1 ELSE 0 END) AS high_risk_in_hazard,
+    COUNT(DISTINCT a.feeder_id) AS feeders_exposed
+  FROM anzgt_may.energyq_silver.assets a
+  JOIN anzgt_may.energyq_silver.asset_health_scores h ON h.asset_id = a.asset_id
+  JOIN hazard_regions hr ON hr.region_id = a.region_id
+  GROUP BY a.region_id
+),
+veg_backlog AS (
+  SELECT region_id, COUNT(*) AS vegetation_backlog
+  FROM anzgt_may.energyq_silver.vegetation_spans
+  WHERE overdue_days > 30
+  GROUP BY region_id
+),
+mobgen_sites AS (
+  SELECT region_id, COUNT(*) AS mobile_gen_candidate_sites
+  FROM anzgt_may.energyq_silver.mobile_generation_candidates
+  GROUP BY region_id
+),
+crit_customers AS (
+  SELECT region_id, COUNT(*) AS critical_customers_exposed
+  FROM anzgt_may.energyq_silver.critical_customers
+  GROUP BY region_id
+),
+storm_packages AS (
+  SELECT region_id, COUNT(*) AS recommended_storm_packages
+  FROM anzgt_may.energyq_silver.work_orders
+  WHERE status IN ('approved','scheduled','in_progress')
+    AND work_type IN ('storm_response','vegetation_treatment','replacement')
+  GROUP BY region_id
+)
 SELECT
   r.region_id,
   r.region_name,
-  COUNT(DISTINCT a.asset_id) AS assets_in_hazard_zone,
-  SUM(CASE WHEN h.risk_band IN ('high','critical') THEN 1 ELSE 0 END) AS high_risk_in_hazard,
-  COUNT(DISTINCT a.feeder_id) AS feeders_exposed,
-  (SELECT COUNT(*) FROM anzgt_may.energyq_silver.vegetation_spans v
-    WHERE v.region_id = r.region_id AND v.overdue_days > 30) AS vegetation_backlog,
-  (SELECT COUNT(*) FROM anzgt_may.energyq_silver.mobile_generation_candidates m
-    WHERE m.region_id = r.region_id) AS mobile_gen_candidate_sites,
-  (SELECT COUNT(*) FROM anzgt_may.energyq_silver.critical_customers c
-    WHERE c.region_id = r.region_id) AS critical_customers_exposed,
-  (SELECT COUNT(*) FROM anzgt_may.energyq_silver.work_orders w
-    WHERE w.region_id = r.region_id
-      AND w.status IN ('approved','scheduled','in_progress')
-      AND w.work_type IN ('storm_response','vegetation_treatment','replacement')) AS recommended_storm_packages
+  COALESCE(ha.assets_in_hazard_zone, 0) AS assets_in_hazard_zone,
+  COALESCE(ha.high_risk_in_hazard, 0) AS high_risk_in_hazard,
+  COALESCE(ha.feeders_exposed, 0) AS feeders_exposed,
+  COALESCE(vb.vegetation_backlog, 0) AS vegetation_backlog,
+  COALESCE(mg.mobile_gen_candidate_sites, 0) AS mobile_gen_candidate_sites,
+  COALESCE(cc.critical_customers_exposed, 0) AS critical_customers_exposed,
+  COALESCE(sp.recommended_storm_packages, 0) AS recommended_storm_packages
 FROM anzgt_may.energyq_silver.regions r
-JOIN anzgt_may.energyq_silver.hazard_exposure_zones z ON z.region_id = r.region_id
-JOIN anzgt_may.energyq_silver.assets a ON a.region_id = r.region_id
-JOIN anzgt_may.energyq_silver.asset_health_scores h ON h.asset_id = a.asset_id
-WHERE z.hazard_type IN ('cyclone','storm','flood')
-GROUP BY r.region_id, r.region_name;
+JOIN hazard_regions hr ON hr.region_id = r.region_id
+LEFT JOIN hazard_assets ha ON ha.region_id = r.region_id
+LEFT JOIN veg_backlog vb ON vb.region_id = r.region_id
+LEFT JOIN mobgen_sites mg ON mg.region_id = r.region_id
+LEFT JOIN crit_customers cc ON cc.region_id = r.region_id
+LEFT JOIN storm_packages sp ON sp.region_id = r.region_id;
 
-CREATE OR REPLACE VIEW gold_genie_metrics AS
+CREATE OR REPLACE VIEW anzgt_may.energyq_gold.gold_genie_metrics AS
 SELECT
   'High-risk assets' AS metric_name,
   CAST(COUNT(*) AS DOUBLE) AS metric_value,

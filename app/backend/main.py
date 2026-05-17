@@ -307,13 +307,13 @@ def get_work_package(work_package_id: str):
 
 @app.post("/api/work-packages")
 def create_work_package(body: models.WorkPackageCreate):
-    payload = body.dict()
+    payload = body.model_dump()
     return lakebase_service.create_work_package(payload)  # type: ignore[union-attr]
 
 
 @app.patch("/api/work-packages/{work_package_id}")
 def patch_work_package(work_package_id: str, body: models.WorkPackagePatch):
-    patch = {k: v for k, v in body.dict().items() if v is not None}
+    patch = {k: v for k, v in body.model_dump().items() if v is not None}
     wp = lakebase_service.patch_work_package(work_package_id, patch)  # type: ignore[union-attr]
     if not wp:
         raise HTTPException(404, detail=f"work package {work_package_id} not found")

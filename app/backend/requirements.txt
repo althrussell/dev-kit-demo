@@ -1,0 +1,9 @@
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.5
+python-multipart>=0.0.6
+# Optional — required when LAKEBASE_DATABASE_URL is set
+psycopg[binary]>=3.1; python_version >= "3.10"
+# Optional — required when running against Databricks
+databricks-sdk>=0.30
+databricks-sql-connector>=3.3

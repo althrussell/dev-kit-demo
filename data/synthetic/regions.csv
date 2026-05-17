@@ -1,0 +1,6 @@
+region_id,region_name,region_type,state,population_density_band,hazard_profile,centre_lat,centre_lon
+REG-SEQ,SEQ Metro Storm Belt,metro,QLD,very_high,"storm,flood,heat",-27.4698,153.0251
+REG-MKY,Mackay / Whitsunday Corridor,coastal_tropical,QLD,medium,"cyclone,storm,vegetation,corrosion",-21.143,149.186
+REG-TSV,Townsville / Cairns Coastal Corridor,coastal_tropical,QLD,medium,"cyclone,flood,vegetation,heat",-17.75,145.76
+REG-CQI,Central Queensland Industrial Belt,industrial_regional,QLD,medium,"storm,heat,industrial_load",-23.3781,150.51
+REG-RW,Remote Western Queensland,remote_radial,QLD,very_low,"heat,storm,bushfire,access",-23.7,144.5

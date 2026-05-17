@@ -1,0 +1,86 @@
+{
+  "space_name": "Energy Queensland Network Intelligence",
+  "tables": [
+    "anzgt_may.energyq_gold.gold_asset_360",
+    "anzgt_may.energyq_gold.gold_feeder_risk_summary",
+    "anzgt_may.energyq_gold.gold_regional_risk_summary",
+    "anzgt_may.energyq_gold.gold_work_prioritisation",
+    "anzgt_may.energyq_gold.gold_storm_readiness",
+    "anzgt_may.energyq_gold.gold_genie_metrics"
+  ],
+  "questions": [
+    {
+      "id": "regions_storm_risk",
+      "prompt": "Which regions have the highest storm-season asset risk?",
+      "expected_columns": [
+        "Region",
+        "High-risk assets",
+        "Critical-risk assets",
+        "Vegetation backlog",
+        "Planned remediation coverage",
+        "Critical customers exposed"
+      ],
+      "expected_chart": "bar",
+      "expected_min_rows": 5,
+      "expected_max_rows": 5
+    },
+    {
+      "id": "planned_coverage",
+      "prompt": "What percentage of high-risk assets have planned remediation?",
+      "expected_columns": ["Region", "Planned remediation coverage"],
+      "expected_chart": "bar",
+      "expected_min_rows": 5,
+      "expected_max_rows": 5
+    },
+    {
+      "id": "vegetation_outages",
+      "prompt": "Which feeders have repeated vegetation-related outages?",
+      "expected_columns": [
+        "Feeder",
+        "Region",
+        "Vegetation outages 12m",
+        "Customers interrupted"
+      ],
+      "expected_chart": "bar",
+      "expected_min_rows": 5,
+      "expected_max_rows": 10
+    },
+    {
+      "id": "where_prioritise",
+      "prompt": "Where should we prioritise work to reduce customer impact?",
+      "expected_columns": [
+        "Region",
+        "Feeder",
+        "Estimated customer impact reduction",
+        "Recommended action"
+      ],
+      "expected_chart": "bar",
+      "expected_min_rows": 5,
+      "expected_max_rows": 10
+    },
+    {
+      "id": "vegetation_backlog",
+      "prompt": "Which regions have the highest vegetation backlog?",
+      "expected_columns": ["Region", "Overdue spans"],
+      "expected_chart": "bar",
+      "expected_min_rows": 5,
+      "expected_max_rows": 5
+    },
+    {
+      "id": "critical_customer_exposure",
+      "prompt": "Which regions have the highest critical customer impact exposure?",
+      "expected_columns": ["Region", "Critical customers exposed"],
+      "expected_chart": "bar",
+      "expected_min_rows": 5,
+      "expected_max_rows": 5
+    }
+  ],
+  "business_definitions": [
+    "Asset risk score — weighted composite of age, condition, defect severity, vegetation proximity, outage recurrence, criticality and hazard exposure. Scored 0–100; banded low ≤ 30 < medium ≤ 55 < high ≤ 75 < critical.",
+    "Health band — derived from condition_score only: critical ≤ 30 < poor ≤ 55 < watch ≤ 75 < good.",
+    "Vegetation backlog — vegetation spans with overdue_days > 0.",
+    "Planned remediation coverage — work_orders with status in ('approved','scheduled','in_progress') covering high/critical risk assets, divided by total high/critical risk assets, capped at 100%.",
+    "Storm readiness score — composite of planned remediation coverage, mobile generation readiness, and inverse of vegetation backlog density.",
+    "Critical customer impact — sum of critical_customer_count_exposed across hospitals, aged care, water, telecom, emergency services, airports, industrial, schools."
+  ]
+}
